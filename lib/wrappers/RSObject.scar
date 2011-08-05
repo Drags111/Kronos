@@ -36,6 +36,8 @@ interface
       public
         ObjType: TObjType;
 
+        constructor Create(Obj: Integer; ObjType: TObjType);
+
         function GetID: Integer;
         function GetOrientation: Integer;
         function GetName: String;
@@ -60,7 +62,15 @@ interface
         function GetChildrenIDs: TIntArray;
     end;
 
+    procedure FreeRSObjectArray(Objects: TRSObjectArray);
+
 implementation
+
+constructor TRSObject.Create(Obj: Integer; ObjType: TObjType);
+begin
+  inherited Create(Obj);
+  Self.ObjType := ObjType;
+end;
 
 (*
 GetID

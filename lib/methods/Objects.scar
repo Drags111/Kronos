@@ -1,0 +1,157 @@
+unit kronos.lib.methods.Objects;
+
+(*
+RSObject
+========
+
+Contains the functions for finding and returning RSObjects.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.methods.Methods,
+    kronos.lib.wrappers.RSObject,
+    Types;
+
+  function GetObjectsAt(Tile: TTile): TRSObjectArray;
+  function GetAllObjects: TRSObjectArray;
+
+implementation
+
+var
+  HOOKNAMES: TStrArray = [
+    hook_ground_WallObject1,
+    hook_ground_WallDecoration1,
+    hook_ground_FloorDecoration,
+    hook_ground_WallObject2,
+    hook_ground_WallDecoration2
+  ];
+
+  OBJECTTYPES: array of TObjType = [
+    WALLOBJECT1, WALLDECORATION1,
+    FLOORDECORATION1, WALLOBJECT2,
+    WALLDECORATION2
+  ];
+
+(*
+GetObjectsAt
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetObjectsAt(Tile: TTile): TRSObjectArray;
+
+Returns all of the objects at a given tile.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetObjectsAt(Tile: TTile): TRSObjectArray;
+var
+  RSGround, X, Y, Plane, C: Integer;
+  Node, Last, Obj, ID, Composite, I: Integer;
+  TempObject: TRSObject;
+begin
+  SetLength(Result, 10);
+  C := 0;
+
+  X := Tile.X - SmartGetFieldInt(0, hook_static_BaseX);
+  Y := Tile.Y - SmartGetFieldInt(0, hook_static_BaseY);
+  Plane := GetMyPlane;
+
+  RSGround := SmartGetFieldArray3DObject(0, hook_static_GroundTiles, Plane, X, Y);
+  Node := SmartGetFieldObject(RSGround, hook_ground_AnimableList);
+  while not SmartIsNull(Node) do
+  begin
+    Obj := SmartGetFieldObject(Node, hook_AnimableNode_GetAnimable);
+    if not SmartIsNull(Obj)then
+    begin
+      ID := SmartGetFieldShort(Obj, hook_interactiveobject_GetID) and $FFFF;
+      if(ID <> 65535)then
+        Result[C++] := TRSObject.Create(Obj, INTERACTIVE1)
+      else
+      begin
+        Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+        try
+          if(not SmartIsNull(Composite))and (SmartGetFieldInt(Composite, hook_secondlevelobject_GetID) and $FFFF <> 65535)then
+            Result[C++] := TRSObject.Create(Obj, INTERACTIVE2)
+          else
+            SmartFreeObject(Obj);
+        finally
+          if not SmartIsNull(Composite)then
+            SmartFreeObject(Composite);
+        end;
+      end;
+
+    end;
+
+    Last := Node;
+    Node := SmartGetFieldObject(Node, hook_AnimableNode_GetNext);
+    SmartFreeObject(Last);
+  end;
+
+  for I := 0 to High(HOOKNAMES)do
+  begin
+    Obj := SmartGetFieldObject(RSGround, HOOKNAMES[I]);
+    if SmartIsNull(Obj)then
+      Continue;
+
+    TempObject := TRSObject.Create(Obj, OBJECTTYPES[I]);
+
+    ID := TempObject.GetID;
+    if(ID <> 65535) and (ID <> -1)then
+      Result[C++] := TempObject
+    else
+      TempObject.Free;
+  end;
+  SmartFreeObject(RSGround);
+
+  SetLength(Result, C);
+end;
+
+(*
+GetAllObjects
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetAllObjects: TRSObjectArray;
+
+Returns all of the objects in the loaded plane. A full plane search takes
+roughly 1060ms.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetAllObjects: TRSObjectArray;
+var
+  X, Y, BX, BY, I, C: Integer;
+  TempObjs: TRSObjectArray;
+begin
+  SetLength(Result, 0);
+  SetLength(Result, 20000);
+  C := 0;
+  BX := SmartGetFieldInt(0, hook_static_BaseX);
+  BY := SmartGetFieldInt(0, hook_static_BaseY);
+  for X := 0 to 103 do
+    for Y := 0 to 103 do
+    begin
+      TempObjs := GetObjectsAt(Point(X+BX, Y+BY));
+      if(Length(TempObjs) < 1)then
+        Continue;
+      for I := 0 to High(TempObjs)do
+        Result[C++] := TempObjs[I];
+    end;
+  SetLength(Result, C);
+end;
+
+end.
