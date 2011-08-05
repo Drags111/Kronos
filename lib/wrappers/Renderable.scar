@@ -17,7 +17,8 @@ plane. The map goes something like this:
 interface
 
   uses
-    kronos.smart.SMART;
+    kronos.smart.SMART,
+    kronos.lib.core.Globals;
 
   type
     TRenderable = class
@@ -50,6 +51,7 @@ constructor TRenderable.Create(Obj: Integer);
 begin
   inherited Create;
   Self.Obj := Obj;
+  UnfreedObjects.Add(Self);
 end;
 
 (*
@@ -72,10 +74,8 @@ from SMART's memory.
 destructor TRenderable.Destroy; override;
 begin
   if not SmartIsNull(Obj)then
-  begin
     SmartFreeObject(Obj);
-    Println('Obj freed from TRenderable.');
-  end;
+  UnfreedObjects.Remove(Self);
   inherited;
 end;
 

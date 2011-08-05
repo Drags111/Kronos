@@ -26,10 +26,14 @@ interface
 
   uses
     kronos.smart.SMART,
-    kronos.lib.core.Hooks;
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.wrappers.Renderable,
+    Types;
 
   procedure SetupKronos;
   function IsRSReady: Boolean;
+  procedure CheckUnfreedObjects;
 
 implementation
 
@@ -81,5 +85,51 @@ begin
   LoginIndex := SmartGetFieldInt(0, hook_static_LoginIndex);
   Result := LoginIndex >= 3;
 end;
+
+(*
+CheckUnfreedObjects
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure CheckUnfreedObjects;
+
+Checks for unfreed objects at the end of the script. Called in the finialization
+of the Kronos unit.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure CheckUnfreedObjects;
+var
+  I, H: Integer;
+begin
+  if(UnfreedObjects.Count < 1)then
+  begin
+    Println('There are no unfreed objects!');
+    Exit;
+  end;
+  Println('There are '+ToStr(UnfreedObjects.Count)+' unfreed objects remaining.');
+  H := UnfreedObjects.Count -1;
+  for I := 0 to H do
+  begin
+    Print('Freed Object['+ToStr(I)+'];');
+    try
+      if(UnfreedObjects[0] is TRenderable)then
+        Println(' Instance of TRenderable;')
+      else
+        Println('');
+      UnfreedObjects[0].Free;
+    except
+      Println('Caught exception while freeing an object.');
+    end;
+  end;
+end;
+
+finalization
+
+  CheckUnfreedObjects;
 
 end.
