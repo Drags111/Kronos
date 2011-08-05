@@ -18,6 +18,8 @@ retrieve the name of the object and the actions you can perform on it.
 interface
 
   uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
     kronos.lib.wrappers.RenderableEntity;
 
   type

@@ -1,0 +1,245 @@
+unit kronos.lib.wrappers.NodeList;
+
+(*
+NodeList
+========
+
+The TNodeList is a double ended queue, or deque, which contains an ordered
+collection of nodes.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Globals,
+    kronos.lib.core.Hooks,
+    kronos.lib.wrappers.Node;
+
+  type
+    TNodeList = class
+      private
+        Head, Node: TNode;
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+
+        function GetHead: TNode;
+        function GetFirst: TNode;
+        function GetLast: TNode;
+        function GetNext: TNode;
+        function GetPrevious: TNode;
+    end;
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TNodeList.Create(Obj: Integer);
+
+Creates the TNodeList and sets the object reference to ObjRef.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TNodeList.Create(Obj: Integer);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNodeList.Destroy;
+
+Called when .Free is called. This overrides the Destroy function to free the
+Object Reference from smart when the TNodeList is freed. If Node and Head are
+assigned then it will free them as well.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNodeList.Destroy;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+
+  if Assigned(Head)then
+    Head.Free;
+  if Assigned(Node)then
+    Node.Free;
+
+  UnfreedObjects.Remove(Self);
+
+  inherited;
+end;
+
+(*
+GetHead
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeList.GetHead: TNode;
+
+Returns the head node of the TNodeList.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeList.GetHead: TNode;
+begin
+  if not Assigned(Head)then
+    Head := TNode.Create(SmartGetFieldObject(Obj, hook_nodelist_Head));
+  Result := Head;
+end;
+
+(*
+GetFirst
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeList.GetFirst: TNode;
+
+Returns the first node of the TNodeList.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeList.GetFirst: TNode;
+var
+  Node: TNode;
+begin
+  Node := GetHead.GetNext;
+  if Assigned(Self.Node)then
+    FreeAndNil(Self.Node);
+
+  if(Node.Equals(GetHead))then
+  begin
+    Node.Free;
+    Result := nil;
+    Exit;
+  end;
+
+  Self.Node := Node.GetNext;
+  Result := Node;
+end;
+
+(*
+GetLast
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeList.GetLast: TNode;
+
+Returns the last node of the TNodeList.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeList.GetLast: TNode;
+var
+  Node: TNode;
+begin
+  Node := GetHead.GetPrevious;
+  if Assigned(self.Node)then
+    FreeAndNil(Self.Node);
+
+  if(Node.Equals(GetHead))then
+  begin
+    Node.Free;
+    Result := nil;
+    Exit;
+  end;
+
+  Self.Node := Node.GetPrevious;
+  Result := Node;
+end;
+
+(*
+GetNext
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeList.GetNext: TNode;
+
+Returns the next node in the TNodeList.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeList.GetNext: TNode;
+var
+  Node: TNode;
+begin
+  Node := Self.Node;
+  if(Node.Equals(GetHead))then
+  begin
+    FreeAndNil(Self.Node);
+    Result := nil;
+    Exit;
+  end;
+
+  Self.Node := Node.GetNext;
+  Result := Node;
+end;
+
+(*
+GetPrevious
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeList.GetPrevious: TNode;
+
+Returns the next node in the TNodeList.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeList.GetPrevious: TNode;
+var
+  Node: TNode;
+begin
+  Node := Self.Node;
+  if(Node.Equals(GetHead))then
+  begin
+    FreeAndNil(Self.Node);
+    Result := nil;
+    Exit;
+  end;
+
+  Self.Node := Node.GetPrevious;
+  Result := Node;
+end;
+
+end.

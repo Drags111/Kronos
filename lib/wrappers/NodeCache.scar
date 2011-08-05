@@ -1,0 +1,190 @@
+unit kronos.lib.wrappers.NodeCache;
+
+(*
+NodeCache
+=========
+
+Also known as RSHashTable or HashMap, the TNodeCache holds an array of nodes.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Globals,
+    kronos.lib.core.Hooks,
+    kronos.lib.wrappers.Node,
+    Types;
+
+  type
+    TNodeCache = class
+      private
+        Index: Integer;
+        Current: TNode;
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+
+        function GetNodeArray: TNodeArray;
+        function GetFirst: TNode;
+        function GetNext: TNode;
+    end;
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TNodeCache.Create(Obj: Integer);
+
+Creates the TNodeCache and sets the object reference to Obj.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TNodeCache.Create(Obj: Integer);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNodeCache.Destroy;
+
+Called when .Free is called. This overrides the Destroy function to free the
+Object Reference from smart when the TNodeCache is freed. If the Current node is
+not nil then it will free the Node as well.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNodeCache.Destroy;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+
+  if Assigned(Current)then
+    Current.Free;
+
+  UnfreedObjects.Remove(Self);
+
+  inherited;
+end;
+
+(*
+GetNodeArray
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeCache.GetNodeArray: TNodeArray;
+
+Returns an array of TNodes stored in the NodeCache.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeCache.GetNodeArray: TNodeArray;
+var
+  NodeReferences: TIntArray;
+  L, I: Integer;
+begin
+  SetLength(Result, 0);
+
+  NodeReferences := SmartGetFieldArrayObject(Obj, hook_nodecache_GetNodes);
+  L := Length(NodeReferences);
+  if(L < 1)then
+    Exit;
+
+  SetLength(Result, L);
+  for I := 0 to L-1 do
+    Result[I] := TNode.Create(NodeReferences[I]);
+end;
+
+(*
+GetFirst
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeCache.GetFirst: TNode;
+
+Returns the first node in the NodeArray stored in the NodeCache.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeCache.GetFirst: TNode;
+begin
+  Index := 0;
+  Result := GetNext;
+end;
+
+(*
+GetNext
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNodeCache.GetNext: TNode;
+
+Returns the next node in the NodeArray stored in the NodeCache.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNodeCache.GetNext: TNode;
+var
+  Nodes: TNodeArray;
+  Node: TNode;
+begin
+  Nodes := GetNodeArray;
+  try
+    if(Index > 0)then
+     if not(Nodes[Index-1].Equals(Current))then
+      begin
+        Node := Current;
+        Current := Node.GetPrevious;
+        Result := Node;
+        Exit;
+      end;
+
+    while(Index < Length(Nodes))do
+    begin
+      Node := Nodes[Index++].getPrevious;
+      if(Nodes[Index-1].Equals(Node))then
+        Continue;
+      Current := Node.GetPrevious;
+      Result := Node;
+      Exit;
+    end;
+
+    Result := nil;
+  finally
+    FreeNodeArray(Nodes);
+  end;
+end;
+
+end.

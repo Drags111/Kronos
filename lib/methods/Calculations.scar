@@ -15,15 +15,15 @@ interface
     kronos.smart.SMART,
     kronos.lib.core.Hooks,
     kronos.lib.core.Globals,
-    //kronos.lib.wrappers.Node,
-    //kronos.lib.wrappers.NodeCache,
+    kronos.lib.wrappers.Node,
+    kronos.lib.wrappers.NodeCache,
     Types;
 
   function GetCollisionMap(out CollisionMap: T2DIntArray): Boolean;
   function DijkstraDist(StartX, StartY, DestX, DestY: Integer; IsObject: Boolean; Blocks: T2DIntArray): Integer;
   function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Integer; overload;
   function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean): Integer; overload;
-  //function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
+  function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
 
 implementation
 
@@ -364,14 +364,13 @@ Finds the node in a cache by its ID.
 
   by Drags111
 
-*)  {
+*)
 function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
 var
   Cache: TNodeArray;
   N, Node: TNode;
 begin
   try
-
     Result := nil;
     if(NodeCache = nil) or (ID < 0)then
       Exit;
@@ -380,12 +379,17 @@ begin
     if(Length(Cache) < 1)then
       Exit;
 
-    N := Cache[Integer(ID and (Length(Cache) - 1))];
-    if not Assigned(N)then
+    try
+      N := Cache[Integer(ID and (Length(Cache) - 1))];
+      if not Assigned(N)then
+        Exit;
+    except
+      FreeNodeArray(Cache);
       Exit;
+    end;
 
     Node := N.GetPrevious;
-    while(Assigned(Node) and (not SmartIsNull(Node.RawObject)) and (not Node.Equals(N)))do
+    while(Assigned(Node) and (not SmartIsNull(Node.Obj)) and (not Node.Equals(N)))do
     begin
       if(Node.GetID = ID)then
       begin
@@ -398,14 +402,7 @@ begin
     Node.Free;
   finally
     FreeNodeArray(Cache);
-    if(Assigned(N))then
-    begin
-      try
-        N.Free;
-      except
-      end;
-    end;
   end;
-end;     }
+end;
 
 end.
