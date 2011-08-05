@@ -1,0 +1,24 @@
+unit kronos.lib.wrappers.RenderableEntity;
+
+(*
+Renderable
+==========
+
+Child of the Renderable class, RenderableEntity provides the simple function of
+grabbing the tile area of the object. Superclass of characters and objects.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.wrappers.Renderable;
+
+  type
+    TRenderableEntity = class(TRenderable)
+    end;
+
+implementation
+
+end.

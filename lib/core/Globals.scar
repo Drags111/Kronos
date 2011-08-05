@@ -1,0 +1,61 @@
+unit kronos.lib.core.Globals;
+
+(*
+Globals
+=======
+
+Contains all of the types, constants, and functions that are used throughout
+the include.
+
+*)
+
+interface
+
+  uses
+    Types;
+
+  type
+    TTile = TPoint;
+    TTileArray = TPointArray;
+
+  const
+    MSX1 = 4;
+    MSY1 = 4;
+    MSX2 = 515;
+    MSY2 = 337;
+
+    MMX1 = 550;
+    MMY1 = 8;
+    MMX2 = 703;
+    MMY2 = 161;
+
+  var
+    MSBox: TBox = Box(MSX1, MSY1, MSX2, MSY2);
+    MMBox: TBox = Box(MMX1, MMY1, MMX2, MMY2);
+    MouseSpeed: Integer = 14;
+
+  procedure SetMouseSpeed(const Speed: Integer);
+
+implementation
+
+(*
+SetMouseSpeed
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure SetMouseSpeed(const Speed: Integer);
+
+Sets the mouse speed to the speed specified by the user.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure SetMouseSpeed(const Speed: Integer);
+begin
+  MouseSpeed := Speed;
+end;
+
+end.

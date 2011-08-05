@@ -1,0 +1,23 @@
+unit kronos.lib.wrappers.Character;
+
+(*
+Character
+=========
+
+Superclass of NPC's and Players, the Character class provides the basic
+information of both.
+
+*)
+
+interface
+
+  uses
+    kronos.lib.wrappers.RenderableEntity;
+
+  type
+    TCharacter = class(TRenderableEntity)
+    end;
+
+implementation
+
+end.

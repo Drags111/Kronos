@@ -1,0 +1,946 @@
+unit kronos.smart.SMART;
+
+(*
+SMART
+=====
+
+Wrapper for the SMART [v6.6] plugin (LEGACY)
+Version 1.0
+By Frederic Hannes (Freddy1990), edited by Drags111
+
+Contains the wrapper for all of the SMART functions used by the include.
+
+*)
+
+interface
+
+  uses
+    Legacy, Windows, Mouse, Types;
+
+  procedure SmartSetup(const Root, Params: AnsiString; const Width, Height: Integer; const InitSeq: AnsiString);
+  procedure SmartSetJVMPath(const Path: AnsiString);
+  function SmartGetDC: HDC;
+  function SmartGetDebugDC: HDC;
+  function SmartImageArray: Integer;
+  function SmartDebugArray: Integer;
+  function SmartGetRefresh: Integer;
+  procedure SmartSetRefresh(const x: Integer);
+  procedure SmartSetTransparentColor(const Color: Integer);
+  procedure SmartSetDebug(const Enabled: Boolean);
+  procedure SmartSetGraphics(const Enabled: Boolean);
+  function SmartActive: Boolean;
+  function SmartEnabled: Boolean;
+  procedure SmartGetMousePos(out x, y: Integer);
+  procedure SmartHoldMouse(const x, y: Integer; const Button: TMouseButton);
+  procedure SmartReleaseMouse(const x, y: Integer; const Button: TMouseButton);
+  procedure SmartMoveMouse(const x, y: Integer);
+  procedure SmartWindMouse(const x, y: Integer);
+  procedure SmartDragMouse(const x, y: Integer);
+  procedure SmartClickMouse(const x, y: Integer; const Left: Boolean);
+  procedure SmartSendKeys(const Text: AnsiString);
+  procedure SmartHoldKey(const Code: Integer);
+  procedure SmartReleaseKey(const Code: Integer);
+  function SmartIsKeyDown(const Code: Integer): Boolean;
+  function SmartGetColor(const x, y: Integer): Integer;
+  function SmartFindColor(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean;
+  function SmartFindColorTolerance(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean;
+  function SmartFindColorSpiral(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean;
+  function SmartFindColorSpiralTolerance(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean;
+  function SmartStringFromBytes(const Bytes: Integer; const Str: AnsiString): Integer;
+  function SmartStringFromChars(const Chars: Integer; const Str: AnsiString): Integer;
+  function SmartStringFromString(const JStr: Integer; Str: AnsiString): Integer;
+  function GetJavaString(JavaString: Integer; MaxLength: Integer): String;
+  function SmartInvokeIntMethod(const Obj: Integer; const Clazz, Meth: AnsiString; const a, b: Integer): Integer;
+
+  function SmartGetFieldObject(const Parent: Integer; const Path: AnsiString): Integer;
+  function SmartGetFieldString(const Parent: Integer; const Path: AnsiString): String;
+  function SmartGetFieldInt(const Parent: Integer; const Path: AnsiString): Integer;
+  function SmartGetFieldShort(const Parent: Integer; const Path: AnsiString): Integer;
+  function SmartGetFieldByte(const Parent: Integer; const Path: AnsiString): Integer;
+  function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Extended;
+  function SmartGetFieldDouble(const Parent: Integer; const Path: AnsiString): Extended;
+  function SmartGetFieldBoolean(const Parent: Integer; const Path: AnsiString): Boolean;
+  function SmartGetFieldLongH(const Parent: Integer; const Path: AnsiString): Integer;
+  function SmartGetFieldLongL(const Parent: Integer; const Path: AnsiString): Integer;
+
+  function SmartGetFieldArraySize(const Parent: Integer; const Path: AnsiString; const Dim: Integer): Integer;
+  function SmartGetFieldArrayObject(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
+  function SmartGetFieldArrayObject(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
+  function SmartGetFieldArrayString(const Parent: Integer; const Path: AnsiString; const Index: Integer): String; overload;
+  function SmartGetFieldArrayString(const Parent: Integer; const Path: AnsiString): TStrArray; overload;
+  function SmartGetFieldArrayInt(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
+  function SmartGetFieldArrayInt(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
+  function SmartGetFieldArrayFloat(const Parent: Integer; const Path: AnsiString; const Index: Integer): Extended;
+  function SmartGetFieldArrayDouble(const Parent: Integer; const Path: AnsiString; const Index: Integer): Extended;
+  function SmartGetFieldArrayLongH(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+  function SmartGetFieldArrayLongL(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+  function SmartGetFieldArrayBoolean(const Parent: Integer; const Path: AnsiString; const Index: Integer): Boolean;
+  function SmartGetFieldArrayByte(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+  function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+  function SmartGetFieldArrayChar(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+
+  function SmartGetFieldArray2DObject(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DString(const Parent: Integer; const Path: AnsiString; const x, y: Integer): String;
+  function SmartGetFieldArray2DInt(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DFloat(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Extended;
+  function SmartGetFieldArray2DDouble(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Extended;
+  function SmartGetFieldArray2DBoolean(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Boolean;
+  function SmartGetFieldArray2DLongH(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DLongL(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DByte(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DShort(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+  function SmartGetFieldArray2DChar(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+
+  function SmartGetFieldArray3DObject(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DString(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): String;
+  function SmartGetFieldArray3DInt(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DFloat(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Extended;
+  function SmartGetFieldArray3DDouble(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Extended;
+  function SmartGetFieldArray3DBoolean(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Boolean;
+  function SmartGetFieldArray3DLongH(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DLongL(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DByte(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DShort(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+  function SmartGetFieldArray3DChar(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+
+  function SmartIsPathValid(const Parent: Integer; const Path: AnsiString): Boolean;
+  function SmartIsEqual(const ObjA, ObjB: Integer): Boolean;
+  function SmartIsNull(const Obj: Integer): Boolean;
+  procedure SmartFreeObject(const Obj: Integer); overload;
+  procedure SmartFreeObject(const Objs: TIntArray); overload;
+
+implementation
+
+var
+  SMART_Plugin: TLegacyPlugin;
+  _SmartSetup: procedure(Root, Params: PAnsiChar; Width, Height: Integer; InitSeq: PAnsiChar); stdcall;
+  _SmartSetJVMPath: procedure(Path: PAnsiChar); stdcall;
+  _SmartGetDC: function: Integer; stdcall;
+  _SmartGetDebugDC: function: Integer; stdcall;
+  _SmartImageArray: function: Integer; stdcall;
+  _SmartDebugArray: function: Integer; stdcall;
+  _SmartGetRefresh: function: Integer; stdcall;
+  _SmartSetRefresh: procedure(x: Integer); stdcall;
+  _SmartSetTransparentColor: procedure(Color: Integer); stdcall;
+  _SmartSetDebug: procedure(Enabled: Boolean); stdcall;
+  _SmartSetGraphics: procedure(Enabled: Boolean); stdcall;
+  _SmartActive: function: Boolean; stdcall;
+  _SmartEnabled: function: Boolean; stdcall;
+  _SmartGetMousePos: procedure(var x, y: Integer); stdcall;
+  _SmartHoldMouse: procedure(x, y: Integer; Left: Boolean); stdcall;
+  _SmartReleaseMouse: procedure(x, y: Integer; Left: Boolean); stdcall;
+  _SmartMoveMouse: procedure(x, y: Integer); stdcall;
+  _SmartWindMouse: procedure(x, y: Integer); stdcall;
+  _SmartDragMouse: procedure(x, y: Integer); stdcall;
+  _SmartClickMouse: procedure(x, y: Integer; Left: Boolean); stdcall;
+  _SmartSendKeys: procedure(Text: PAnsiChar); stdcall;
+  _SmartHoldKey: procedure(Code: Integer); stdcall;
+  _SmartReleaseKey: procedure(Code: Integer); stdcall;
+  _SmartIsKeyDown: function(Code: Integer): Boolean; stdcall;
+  _SmartGetColor: function(x, y: Integer): Integer; stdcall;
+  _SmartFindColor: function(var x, y: Integer; Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean; stdcall;
+  _SmartFindColorTolerance: function(var x, y: Integer; Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean; stdcall;
+  _SmartFindColorSpiral: function(var x, y: Integer; Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean; stdcall;
+  _SmartFindColorSpiralTolerance: function(var x, y: Integer; Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean; stdcall;
+  _SmartStringFromBytes: function(Bytes: Integer; Str: PAnsiChar): Integer; stdcall;
+  _SmartStringFromChars: function(Chars: Integer; Str: PAnsiChar): Integer; stdcall;
+  _SmartStringFromString: function(JStr: Integer; Str: PAnsiChar): Integer; stdcall;
+  _SmartInvokeIntMethod: function(Obj: Integer; Clazz, Meth: PAnsiChar; a, b: Integer): Integer; stdcall;
+  _SmartGetFieldObject: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartIsPathValid: function(Parent: Integer; Path: PAnsiChar): Boolean; stdcall;
+  _SmartGetFieldInt: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartGetFieldShort: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartGetFieldByte: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartGetFieldFloat: function(Parent: Integer; Path: PAnsiChar): Extended; stdcall;
+  _SmartGetFieldDouble: function(Parent: Integer; Path: PAnsiChar): Extended; stdcall;
+  _SmartGetFieldBoolean: function(Parent: Integer; Path: PAnsiChar): Boolean; stdcall;
+  _SmartGetFieldLongH: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartGetFieldLongL: function(Parent: Integer; Path: PAnsiChar): Integer; stdcall;
+  _SmartGetFieldArrayInt: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArrayFloat: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Extended; stdcall;
+  _SmartGetFieldArrayDouble: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Extended; stdcall;
+  _SmartGetFieldArrayLongH: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArrayLongL:function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArrayBoolean: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Boolean; stdcall;
+  _SmartGetFieldArrayByte: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArrayShort: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArrayChar: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DInt: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DFloat: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Extended; stdcall;
+  _SmartGetFieldArray3DDouble: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Extended; stdcall;
+  _SmartGetFieldArray3DBoolean: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Boolean; stdcall;
+  _SmartGetFieldArray3DLongH: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DLongL: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DByte: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DShort: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DChar: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray3DObject: function(Parent: Integer; Path: PAnsiChar; x, y, z: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DInt: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DFloat: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Extended; stdcall;
+  _SmartGetFieldArray2DDouble: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Extended; stdcall;
+  _SmartGetFieldArray2DBoolean: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Boolean; stdcall;
+  _SmartGetFieldArray2DLongH: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DLongL: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DByte: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DShort: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DChar: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArray2DObject: function(Parent: Integer; Path: PAnsiChar; x, y: Integer): Integer; stdcall;
+  _SmartGetFieldArrayObject: function(Parent: Integer; Path: PAnsiChar; Index: Integer): Integer; stdcall;
+  _SmartGetFieldArraySize: function(Parent: Integer; Path: PAnsiChar; Dim: Integer): Integer; stdcall;
+  _SmartIsEqual: function(ObjA, ObjB: Integer): Boolean; stdcall;
+  _SmartIsNull: function(Obj: Integer): Boolean; stdcall;
+  _SmartFreeObject: procedure(Obj: Integer); stdcall;
+
+procedure SmartSetup(const Root, Params: AnsiString; const Width, Height: Integer; const InitSeq: AnsiString);
+begin
+  Set_GetMousePos(SmartGetMousePos);
+  Set_SetMousePos(SmartMoveMouse);
+  Set_HoldMouse(SmartHoldMouse);
+  Set_ReleaseMouse(SmartReleaseMouse);
+  _SmartSetup(PAnsiChar(Root), PAnsiChar(Params), Width, Height, PAnsiChar(InitSeq));
+end;
+
+procedure SmartSetJVMPath(const Path: AnsiString);
+begin
+  _SmartSetJVMPath(PAnsiChar(Path));
+end;
+
+function SmartGetDC: HDC;
+begin
+  Result := _SmartGetDC();
+end;
+
+function SmartGetDebugDC: HDC;
+begin
+  Result := _SmartGetDebugDC();
+end;
+
+function SmartImageArray: Integer;
+begin
+  Result := _SmartImageArray();
+end;
+
+function SmartDebugArray: Integer;
+begin
+  Result := _SmartDebugArray();
+end;
+
+function SmartGetRefresh: Integer;
+begin
+  Result := _SmartGetRefresh();
+end;
+
+procedure SmartSetRefresh(const x: Integer);
+begin
+  _SmartSetRefresh(x);
+end;
+
+procedure SmartSetTransparentColor(const Color: Integer);
+begin
+  _SmartSetTransparentColor(Color);
+end;
+
+procedure SmartSetDebug(const Enabled: Boolean);
+begin
+  _SmartSetDebug(Enabled);
+end;
+
+procedure SmartSetGraphics(const Enabled: Boolean);
+begin
+  _SmartSetGraphics(Enabled);
+end;
+
+function SmartActive: Boolean;
+begin
+  Result := _SmartActive();
+end;
+
+function SmartEnabled: Boolean;
+begin
+  Result := _SmartEnabled();
+end;
+
+procedure SmartGetMousePos(out x, y: Integer);
+begin
+  _SmartGetMousePos(x, y);
+end;
+
+procedure SmartHoldMouse(const x, y: Integer; const Button: TMouseButton);
+var
+  Left: Boolean;
+begin
+  Left := Button = mbLeft;
+  _SmartHoldMouse(x, y, Left);
+end;
+
+procedure SmartReleaseMouse(const x, y: Integer; const Button: TMouseButton);
+var
+  Left: Boolean;
+begin
+  Left := Button = mbLeft;
+  _SmartReleaseMouse(x, y, Left);
+end;
+
+procedure SmartMoveMouse(const x, y: Integer);
+begin
+  _SmartMoveMouse(x, y);
+end;
+
+procedure SmartWindMouse(const x, y: Integer);
+begin
+  _SmartWindMouse(x, y);
+end;
+
+procedure SmartDragMouse(const x, y: Integer);
+begin
+  _SmartDragMouse(x, y);
+end;
+
+procedure SmartClickMouse(const x, y: Integer; const Left: Boolean);
+begin
+  _SmartClickMouse(x, y, Left);
+end;
+
+procedure SmartSendKeys(const Text: AnsiString);
+begin
+  _SmartSendKeys(PAnsiChar(Text));
+end;
+
+procedure SmartHoldKey(const Code: Integer);
+begin
+  _SmartHoldKey(Code);
+end;
+
+procedure SmartReleaseKey(const Code: Integer);
+begin
+  _SmartReleaseKey(Code);
+end;
+
+function SmartIsKeyDown(const Code: Integer): Boolean;
+begin
+  Result := _SmartIsKeyDown(Code);
+end;
+
+function SmartGetColor(const x, y: Integer): Integer;
+begin
+  Result := _SmartGetColor(x, y);
+end;
+
+function SmartFindColor(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean;
+begin
+  Result := _SmartFindColor(x, y, Color, SAX1, SAY1, SAX2, SAY2);
+end;
+
+function SmartFindColorTolerance(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean;
+begin
+  Result := _SmartFindColorTolerance(x, y, Color, SAX1, SAY1, SAX2, SAY2, Tol);
+end;
+
+function SmartFindColorSpiral(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2: Integer): Boolean;
+begin
+  Result := _SmartFindColorSpiral(x, y, Color, SAX1, SAY1, SAX2, SAY2);
+end;
+
+function SmartFindColorSpiralTolerance(var x, y: Integer; const Color, SAX1, SAY1, SAX2, SAY2, Tol: Integer): Boolean;
+begin
+  Result := _SmartFindColorSpiralTolerance(x, y, Color, SAX1, SAY1, SAX2, SAY2, Tol);
+end;
+
+function SmartStringFromBytes(const Bytes: Integer; const Str: AnsiString): Integer;
+begin
+  Result := -2;
+  if Bytes <= 0 then
+    Exit;
+  Result := _SmartStringFromBytes(Bytes, PAnsiChar(Str));
+end;
+
+function SmartStringFromChars(const Chars: Integer; const Str: AnsiString): Integer;
+begin
+  Result := -2;
+  if Chars <= 0 then
+    Exit;
+  Result := _SmartStringFromChars(Chars, PAnsiChar(Str));
+end;
+
+function SmartStringFromString(const JStr: Integer; Str: AnsiString): Integer;
+begin
+  Result := -2;
+  if JStr <= 0 then
+    Exit;
+  Result := _SmartStringFromString(JStr, PAnsiChar(Str));
+end;
+
+function GetJavaString(JavaString: Integer; MaxLength: Integer): String;
+var
+  Str: AnsiString;
+begin
+  try
+    SetLength(Str, MaxLength);
+    SetLength(Str, SmartStringFromString(JavaString, Str));
+    Result := Str;
+    Result := Strings.Replace(Result, 'Â', '');
+    Result := Strings.Replace(Result, #160, #32);
+  except
+    Println('Error Retrieving Java String;' + ' JavaString: '+ToStr(JavaString));
+  end;
+end;
+
+function SmartInvokeIntMethod(const Obj: Integer; const Clazz, Meth: AnsiString; const a, b: Integer): Integer;
+begin
+  Result := _SmartInvokeIntMethod(Obj, PAnsiChar(Clazz), PAnsiChar(Meth), a, b);
+end;
+
+function SmartGetFieldObject(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldObject(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldString(const Parent: Integer; const Path: AnsiString): String;
+var
+  Bytes: Integer;
+begin
+  Result := '';
+  if Parent < 0 then
+    Exit;
+  Bytes := SmartGetFieldObject(Parent, PAnsiChar(Path));
+  Result := GetJavaString(Bytes, 512);
+  SmartFreeObject(Bytes);
+end;
+
+function SmartGetFieldInt(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldInt(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldShort(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldShort(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldByte(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldByte(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldFloat(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldDouble(const Parent: Integer; const Path: AnsiString): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldDouble(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldBoolean(const Parent: Integer; const Path: AnsiString): Boolean;
+begin
+  Result := False;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldBoolean(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldLongH(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldLongH(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldLongL(const Parent: Integer; const Path: AnsiString): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldLongL(Parent, PAnsiChar(Path));
+end;
+
+function SmartGetFieldArraySize(const Parent: Integer; const Path: AnsiString; const Dim: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArraySize(Parent, PAnsiChar(Path), Dim);
+end;
+
+function SmartGetFieldArrayObject(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayObject(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayObject(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
+var
+  L, I: Integer;
+begin
+  SetLength(Result, 0);
+  if Parent < 0 then
+    Exit;
+
+  L := SmartGetFieldArraySize(Parent, Path, 1);
+  SetLength(Result, L);
+
+  if(L <= 0)then
+    Exit;
+
+  for I := 0 to L-1 do
+    Result[I] := SmartGetFieldArrayObject(Parent, Path, I);
+end;
+
+function SmartGetFieldArrayString(const Parent: Integer; const Path: AnsiString; const Index: Integer): String; overload;
+var
+  StringObj: Integer;
+begin
+  Result := '';
+  if Parent < 0 then
+    Exit;
+  StringObj := _SmartGetFieldArrayObject(Parent, PAnsiChar(Path), Index);
+  Result := GetJavaString(StringObj, 512);
+  SmartFreeObject(StringObj);
+end;
+
+function SmartGetFieldArrayString(const Parent: Integer; const Path: AnsiString): TStrArray; overload;
+var
+  StringObjs: TIntArray;
+  I, H: Integer;
+begin
+  StringObjs := SmartGetFieldArrayObject(Parent, Path);
+  SetLength(Result, Length(StringObjs));
+  if(Length(Result) < 1)then
+    Exit;
+
+  H := High(Result);
+  for I := 0 to H do
+  begin
+    Result[I] := GetJavaString(StringObjs[I], 512);
+    SmartFreeObject(StringObjs[I]);
+  end;
+end;
+
+function SmartGetFieldArrayInt(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayInt(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayInt(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
+var
+  L, I: Integer;
+begin
+  SetLength(Result, 0);
+
+  if Parent < 0 then
+    Exit;
+
+  L := SmartGetFieldArraySize(Parent, Path, 1);
+  if(L < 1)then
+    Exit;
+  SetLength(Result, L);
+
+  if(L <= 0)then
+    Exit;
+
+  for I := 0 to L-1 do
+    Result[I] := SmartGetFieldArrayInt(Parent, Path, I);
+end;
+
+function SmartGetFieldArrayFloat(const Parent: Integer; const Path: AnsiString; const Index: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayFloat(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayDouble(const Parent: Integer; const Path: AnsiString; const Index: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayDouble(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayLongH(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayLongH(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayLongL(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayLongL(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayBoolean(const Parent: Integer; const Path: AnsiString; const Index: Integer): Boolean;
+begin
+  Result := False;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayBoolean(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayByte(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayByte(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayByte(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayChar(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArrayChar(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArray2DObject(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DObject(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DString(const Parent: Integer; const Path: AnsiString; const x, y: Integer): String;
+var
+  StringObj: Integer;
+begin
+  Result := '';
+  if Parent < 0 then
+    Exit;
+  StringObj := _SmartGetFieldArray2DObject(Parent, PAnsiChar(Path), x, y);
+  Result := GetJavaString(StringObj, 512);
+  SmartFreeObject(StringObj);
+end;
+
+function SmartGetFieldArray2DInt(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DInt(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DFloat(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DFloat(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DDouble(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DDouble(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DBoolean(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Boolean;
+begin
+  Result := False;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DBoolean(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DLongH(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DLongH(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DLongL(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DLongL(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DByte(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DByte(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DShort(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DShort(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray2DChar(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray2DChar(Parent, PAnsiChar(Path), x, y);
+end;
+
+function SmartGetFieldArray3DObject(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DObject(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DString(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): String;
+var
+  StringObj: Integer;
+begin
+  Result := '';
+  if Parent < 0 then
+    Exit;
+  StringObj := _SmartGetFieldArray3DObject(Parent, PAnsiChar(Path), x, y, z);
+  Result := GetJavaString(StringObj, 512);
+  SmartFreeObject(StringObj);
+end;
+
+function SmartGetFieldArray3DInt(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DInt(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DFloat(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DFloat(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DDouble(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Extended;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DDouble(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DBoolean(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Boolean;
+begin
+  Result := False;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DBoolean(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DLongH(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DLongH(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DLongL(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DLongL(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DByte(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DByte(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DShort(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DShort(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartGetFieldArray3DChar(const Parent: Integer; const Path: AnsiString; const x, y, z: Integer): Integer;
+begin
+  Result := -2;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartGetFieldArray3DChar(Parent, PAnsiChar(Path), x, y, z);
+end;
+
+function SmartIsPathValid(const Parent: Integer; const Path: AnsiString): Boolean;
+begin
+  Result := False;
+  if Parent < 0 then
+    Exit;
+  Result := _SmartIsPathValid(Parent, PAnsiChar(Path));
+end;
+
+function SmartIsEqual(const ObjA, ObjB: Integer): Boolean;
+begin
+  Result := _SmartIsEqual(ObjA, ObjB);
+end;
+
+function SmartIsNull(const Obj: Integer): Boolean;
+begin
+  Result := True;
+  if(Obj < 0)then
+    Exit;
+  Result := _SmartIsNull(Obj);
+end;
+
+procedure SmartFreeObject(const Obj: Integer); overload;
+begin
+  if(Obj < 0)then
+    Exit;
+  _SmartFreeObject(Obj);
+end;
+
+procedure SmartFreeObject(const Objs: TIntArray); overload;
+var
+  I, H: Integer;
+begin
+  H := High(Objs);
+  if(H < 0)then
+    Exit;
+
+  for I := 0 to H do
+  begin
+    if(Objs[I] < 1) or (SmartIsNull(Objs[I]))then
+      Continue;
+    _SmartFreeObject(Objs[I]);
+  end;
+end;
+
+initialization
+  SMART_Plugin := TLegacyPlugin.Create('Embedded_SMART.dll');
+  if SMART_Plugin.Loaded then
+  begin
+    _SmartSetup := SMART_Plugin.Get('SmartSetup');
+    _SmartSetJVMPath := SMART_Plugin.Get('SmartSetJVMPath');
+    _SmartGetDC := SMART_Plugin.Get('SmartGetDC');
+    _SmartGetDebugDC := SMART_Plugin.Get('SmartGetDebugDC');
+    _SmartImageArray := SMART_Plugin.Get('SmartImageArray');
+    _SmartDebugArray := SMART_Plugin.Get('SmartDebugArray');
+    _SmartGetRefresh := SMART_Plugin.Get('SmartGetRefresh');
+    _SmartSetRefresh := SMART_Plugin.Get('SmartSetRefresh');
+    _SmartSetTransparentColor := SMART_Plugin.Get('SmartSetTransparentColor');
+    _SmartSetDebug := SMART_Plugin.Get('SmartSetDebug');
+    _SmartSetGraphics := SMART_Plugin.Get('SmartSetGraphics');
+    _SmartActive := SMART_Plugin.Get('SmartActive');
+    _SmartEnabled := SMART_Plugin.Get('SmartEnabled');
+    _SmartGetMousePos := SMART_Plugin.Get('SmartGetMousePos');
+    _SmartHoldMouse := SMART_Plugin.Get('SmartHoldMouse');
+    _SmartReleaseMouse := SMART_Plugin.Get('SmartReleaseMouse');
+    _SmartMoveMouse := SMART_Plugin.Get('SmartMoveMouse');
+    _SmartWindMouse := SMART_Plugin.Get('SmartWindMouse');
+    _SmartDragMouse := SMART_Plugin.Get('SmartDragMouse');
+    _SmartClickMouse := SMART_Plugin.Get('SmartClickMouse');
+    _SmartSendKeys := SMART_Plugin.Get('SmartSendKeys');
+    _SmartHoldKey := SMART_Plugin.Get('SmartHoldKey');
+    _SmartReleaseKey := SMART_Plugin.Get('SmartReleaseKey');
+    _SmartIsKeyDown := SMART_Plugin.Get('SmartIsKeyDown');
+    _SmartGetColor := SMART_Plugin.Get('SmartGetColor');
+    _SmartFindColor := SMART_Plugin.Get('SmartFindColor');
+    _SmartFindColorTolerance := SMART_Plugin.Get('SmartFindColorTolerance');
+    _SmartFindColorSpiral := SMART_Plugin.Get('SmartFindColorSpiral');
+    _SmartFindColorSpiralTolerance := SMART_Plugin.Get('SmartFindColorSpiralTolerance');
+    _SmartStringFromBytes := SMART_Plugin.Get('SmartStringFromBytes');
+    _SmartStringFromChars := SMART_Plugin.Get('SmartStringFromChars');
+    _SmartStringFromString := SMART_Plugin.Get('SmartStringFromString');
+    _SmartInvokeIntMethod := SMART_Plugin.Get('SmartInvokeIntMethod');
+    _SmartGetFieldObject := SMART_Plugin.Get('SmartGetFieldObject');
+    _SmartIsPathValid := SMART_Plugin.Get('SmartIsPathValid');
+    _SmartGetFieldInt := SMART_Plugin.Get('SmartGetFieldInt');
+    _SmartGetFieldShort := SMART_Plugin.Get('SmartGetFieldShort');
+    _SmartGetFieldByte := SMART_Plugin.Get('SmartGetFieldByte');
+    _SmartGetFieldFloat := SMART_Plugin.Get('SmartGetFieldFloat');
+    _SmartGetFieldDouble := SMART_Plugin.Get('SmartGetFieldDouble');
+    _SmartGetFieldBoolean := SMART_Plugin.Get('SmartGetFieldBoolean');
+    _SmartGetFieldLongH := SMART_Plugin.Get('SmartGetFieldLongH');
+    _SmartGetFieldLongL := SMART_Plugin.Get('SmartGetFieldLongL');
+    _SmartGetFieldArrayInt := SMART_Plugin.Get('SmartGetFieldArrayInt');
+    _SmartGetFieldArrayFloat := SMART_Plugin.Get('SmartGetFieldArrayFloat');
+    _SmartGetFieldArrayDouble := SMART_Plugin.Get('SmartGetFieldArrayDouble');
+    _SmartGetFieldArrayLongH := SMART_Plugin.Get('SmartGetFieldArrayLongH');
+    _SmartGetFieldArrayLongL := SMART_Plugin.Get('SmartGetFieldArrayLongL');
+    _SmartGetFieldArrayBoolean := SMART_Plugin.Get('SmartGetFieldArrayBoolean');
+    _SmartGetFieldArrayByte := SMART_Plugin.Get('SmartGetFieldArrayByte');
+    _SmartGetFieldArrayShort := SMART_Plugin.Get('SmartGetFieldArrayShort');
+    _SmartGetFieldArrayChar := SMART_Plugin.Get('SmartGetFieldArrayChar');
+    _SmartGetFieldArray3DInt := SMART_Plugin.Get('SmartGetFieldArray3DInt');
+    _SmartGetFieldArray3DFloat := SMART_Plugin.Get('SmartGetFieldArray3DFloat');
+    _SmartGetFieldArray3DDouble := SMART_Plugin.Get('SmartGetFieldArray3DDouble');
+    _SmartGetFieldArray3DBoolean := SMART_Plugin.Get('SmartGetFieldArray3DBoolean');
+    _SmartGetFieldArray3DLongH := SMART_Plugin.Get('SmartGetFieldArray3DLongH');
+    _SmartGetFieldArray3DLongL := SMART_Plugin.Get('SmartGetFieldArray3DLongL');
+    _SmartGetFieldArray3DByte := SMART_Plugin.Get('SmartGetFieldArray3DByte');
+    _SmartGetFieldArray3DShort := SMART_Plugin.Get('SmartGetFieldArray3DShort');
+    _SmartGetFieldArray3DChar := SMART_Plugin.Get('SmartGetFieldArray3DChar');
+    _SmartGetFieldArray3DObject := SMART_Plugin.Get('SmartGetFieldArray3DObject');
+    _SmartGetFieldArray2DInt := SMART_Plugin.Get('SmartGetFieldArray2DInt');
+    _SmartGetFieldArray2DFloat := SMART_Plugin.Get('SmartGetFieldArray2DFloat');
+    _SmartGetFieldArray2DDouble := SMART_Plugin.Get('SmartGetFieldArray2DDouble');
+    _SmartGetFieldArray2DBoolean := SMART_Plugin.Get('SmartGetFieldArray2DBoolean');
+    _SmartGetFieldArray2DLongH := SMART_Plugin.Get('SmartGetFieldArray2DLongH');
+    _SmartGetFieldArray2DLongL := SMART_Plugin.Get('SmartGetFieldArray2DLongL');
+    _SmartGetFieldArray2DByte := SMART_Plugin.Get('SmartGetFieldArray2DByte');
+    _SmartGetFieldArray2DShort := SMART_Plugin.Get('SmartGetFieldArray2DShort');
+    _SmartGetFieldArray2DChar := SMART_Plugin.Get('SmartGetFieldArray2DChar');
+    _SmartGetFieldArray2DObject := SMART_Plugin.Get('SmartGetFieldArray2DObject');
+    _SmartGetFieldArrayObject := SMART_Plugin.Get('SmartGetFieldArrayObject');
+    _SmartGetFieldArraySize := SMART_Plugin.Get('SmartGetFieldArraySize');
+    _SmartIsEqual := SMART_Plugin.Get('SmartIsEqual');
+    _SmartIsNull := SMART_Plugin.Get('SmartIsNull');
+    _SmartFreeObject := SMART_Plugin.Get('SmartFreeObject');
+  end;
+finalization
+  SMART_Plugin.Free;
+end.

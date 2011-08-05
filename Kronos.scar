@@ -1,0 +1,85 @@
+unit kronos.Kronos;
+
+//----------------------------------------------------------------------------//
+//--                      Kronos Reflection Library                         --//
+//----------------------------------------------------------------------------//
+//--  In Greek mythology, Cronus or Kronos was the leader and the youngest  --//
+//--  of the first generation of Titans, divine descendants of Gaia, the    --//
+//--  earth, and Uranus, the sky. He overthrew his father and ruled during  --//
+//--  the mythological Golden Age, until he was overthrown by his own sons, --//
+//--  Zeus, Hades, and Poseidon, and imprisoned in Tartarus.                --//
+//--                                                                        --//
+//--  Kronos is the reflection library for the new SCAR 4: Titan. It is a   --//
+//--  pilot include designed to make use of the newly added object          --//
+//--  oriented programming features. This include is designed for speed and --//
+//--  accuracy while maintaining easy coding practices for beginning        --//
+//--  programmers. We hope to make this a fun but powerful include for      --//
+//--  botters and scripters alike.                                          --//
+//--                                                                        --//
+//--  Kronos is written and maintained by Drags111 with help and            --//
+//--  special thanks to:                                                    --//
+//--    Benland100, mormonman, pyroryan, Trilez, and The SRL Community      --//
+//--                                                                        --//
+//----------------------------------------------------------------------------//
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks;
+
+  procedure SetupKronos;
+  function IsRSReady: Boolean;
+
+implementation
+
+(*
+SetupKronos
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure SetupKronos;
+
+Initiates Kronos and sets up SMART.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure SetupKronos;
+var
+  T: Integer;
+begin
+  SmartSetup('http://world1.runescape.com/',
+    'plugin.js?param=o0,a0,m1', 765, 503, 's');
+  T := Time.SysTime;
+  while(not IsRSReady) and ((Time.SysTime - T) < 300000)do
+    Time.Wait(500);
+end;
+
+(*
+IsRSReady
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function IsRSReady: Boolean;
+
+Returns true if Runescape is done loading.
+
+.. note::
+
+  by Drags111
+
+*)
+function IsRSReady: Boolean;
+var
+  LoginIndex: Integer;
+begin
+  LoginIndex := SmartGetFieldInt(0, hook_static_LoginIndex);
+  Result := LoginIndex >= 3;
+end;
+
+end.

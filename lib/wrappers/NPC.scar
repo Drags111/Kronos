@@ -1,0 +1,22 @@
+unit kronos.lib.wrappers.NPC;
+
+(*
+NPC
+===
+
+Contains the NPC class, which retrieves the information unique to NPCs.
+
+*)
+
+interface
+
+  uses
+    kronos.lib.wrappers.Character;
+
+  type
+    TNPC = class(TCharacter)
+    end;
+
+implementation
+
+end.

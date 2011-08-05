@@ -1,0 +1,29 @@
+unit kronos.lib.wrappers.RSObject;
+
+(*
+RSObject
+========
+
+Contains the RSObject class, subclass of RenderableEntity. The RSObject has 4
+main object types that go with it. There are Interactive Objects such as a tree,
+there are Wall Objects such as a door, Wall Decoration such as a painting, and
+Floor Decoration such as a rug. In the client there are composites for each one
+of these, so it might be a Wall Object, but what we refer to as a "Second Level"
+Wall Object. You are able to search for specific types of objects using this
+information. Some types objects contain a Def Loader in which you are able to
+retrieve the name of the object and the actions you can perform on it.
+
+*)
+
+interface
+
+  uses
+    kronos.lib.wrappers.RenderableEntity;
+
+  type
+    TRSObject = class(TRenderableEntity)
+    end;
+
+implementation
+
+end.

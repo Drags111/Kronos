@@ -1,0 +1,22 @@
+unit kronos.lib.wrappers.Player;
+
+(*
+Player
+======
+
+Contains the Player class, which retrieves the information unique to Players.
+
+*)
+
+interface
+
+  uses
+    kronos.lib.wrappers.Character;
+
+  type
+    TPlayer = class(TCharacter)
+    end;
+
+implementation
+
+end.

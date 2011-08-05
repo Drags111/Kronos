@@ -1,0 +1,82 @@
+unit kronos.lib.wrappers.Renderable;
+
+(*
+Renderable
+==========
+
+The Renderable class is the highest level in the heiarchy of objects and
+characters. It contains the basic functions of those, such as tile position and
+plane. The map goes something like this:
+                                                  -> Player
+                                   -> Character -|
+  Renderable -> RenderableEntity -|               -> NPC
+                                   -> Object
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART;
+
+  type
+    TRenderable = class
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+    end;
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TRenderable.Create(Obj: Integer);
+
+Creates the TRenderable object and sets the private field Obj to the one
+specified in the parameter.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TRenderable.Create(Obj: Integer);
+begin
+  inherited Create;
+  Self.Obj := Obj;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TRenderable.Destroy; override;
+
+Overrides the Destroy method of the TRenderable class. Called when
+TRenderable.Free is declared, this procedure will free the object reference Obj
+from SMART's memory.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TRenderable.Destroy; override;
+begin
+  if not SmartIsNull(Obj)then
+  begin
+    SmartFreeObject(Obj);
+    Println('Obj freed from TRenderable.');
+  end;
+  inherited;
+end;
+
+end.
