@@ -1,0 +1,226 @@
+unit kronos.lib.methods.Mouse;
+
+(*
+Mouse
+=====
+
+Mouse functions in Titan are overrided by the mouse functions built into smart
+so that the silent mouse can be used. These functions utilize those and are
+used for human-like mouse movements.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Globals,
+    Math, Mouse;
+
+  procedure MMouse(x, y, rx, ry: Integer); overload;
+  procedure MMouse(P: TPoint; RX, RY: Integer); overload;
+  procedure ClickMouse(Left: Boolean); overload;
+  procedure CMouse(MouseX, MouseY, RanX, RanY: Integer; Left: Boolean); overload;
+  procedure CMouse(P: TPoint; RanX, RanY: Integer; Left: Boolean); overload;
+
+implementation
+
+(*
+WindMouse
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure WindMouse(xs, ys, xe, ye, gravity, wind, minWait, maxWait, maxStep, targetArea: extended);
+
+Generates a windy path for the mouse to follow for human-like mouse movements.
+
+.. note::
+
+  by Benland100
+
+*)
+procedure WindMouse(xs, ys, xe, ye, gravity, wind, minWait, maxWait, maxStep, targetArea: extended);
+var
+  veloX, veloY, windX, windY, veloMag, dist, randomDist, lastDist, step: extended;
+  lastX, lastY: integer;
+  sqrt2, sqrt3, sqrt5: extended;
+begin
+  sqrt2:= sqrt(2);
+  sqrt3:= sqrt(3);
+  sqrt5:= sqrt(5);
+  while hypot(xs - xe, ys - ye) > 1 do
+  begin
+    dist:= hypot(xs - xe, ys - ye);
+    wind:= Min(wind, dist);
+    if dist >= targetArea then
+    begin
+      windX:= windX / sqrt3 + (rnd(round(wind) * 2 + 1) - wind) / sqrt5;
+      windY:= windY / sqrt3 + (rnd(round(wind) * 2 + 1) - wind) / sqrt5;
+    end else
+    begin
+      windX:= windX / sqrt2;
+      windY:= windY / sqrt2;
+      if (maxStep < 3) then
+      begin
+        maxStep:= rnd(3) + 3.0;
+      end else
+      begin
+        maxStep:= maxStep / sqrt5;
+      end;
+    end;
+    veloX:= veloX + windX;
+    veloY:= veloY + windY;
+    veloX:= veloX + gravity * (xe - xs) / dist;
+    veloY:= veloY + gravity * (ye - ys) / dist;
+    if hypot(veloX, veloY) > maxStep then
+    begin
+      randomDist:= maxStep / 2.0 + rnd(round(maxStep) div 2);
+      veloMag:= sqrt(veloX * veloX + veloY * veloY);
+      veloX:= (veloX / veloMag) * randomDist;
+      veloY:= (veloY / veloMag) * randomDist;
+    end;
+    lastX:= Round(xs);
+    lastY:= Round(ys);
+    xs:= xs + veloX;
+    ys:= ys + veloY;
+    if (lastX <> Round(xs)) or (lastY <> Round(ys)) then
+      SetMousePos(Round(xs), Round(ys));
+    step:= hypot(xs - lastX, ys - lastY);
+    Time.Wait(round((maxWait - minWait) * (step / maxStep) + minWait));
+    lastdist:= dist;
+  end;
+  if (Round(xe) <> Round(xs)) or (Round(ye) <> Round(ys)) then
+    SetMousePos(Round(xe), Round(ye));
+end;
+
+
+(*
+MMouse
+~~~~~~
+
+.. code-block:: pascal
+
+    procedure MMouse(x, y, rx, ry: integer);  overload;
+
+Moves the mouse.
+
+.. note::
+
+    by Benland100
+
+*)
+procedure MMouse(x, y, rx, ry: Integer); overload;
+var
+  cx, cy: integer;
+  randSpeed: Extended;
+begin
+  GetMousePos(cx, cy);
+  randSpeed:= (rnd(MouseSpeed) / 2.0 + MouseSpeed) / 10.0;
+  if randSpeed = 0.0 then
+    randSpeed := 0.1;
+  X := x + rnd(rx);
+  Y := y + rnd(ry);
+  WindMouse(cx,cy,x,y,9.0,3.0,10.0/randSpeed,15.0/randSpeed,10.0*randSpeed,10.0*randSpeed);
+end;
+
+
+(*
+MMouse
+~~~~~~
+
+.. code-block:: pascal
+
+    procedure MMouse(P: TPoint; RX, RY: Integer); overload;
+
+Moves the mouse.
+
+.. note::
+
+    by Drags111
+
+*)
+procedure MMouse(P: TPoint; RX, RY: Integer); overload;
+begin
+  MMouse(P.X, P.Y, RX, RY);
+end;
+
+(*
+ClickMouse
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure ClickMouse(Left: Boolean); overload;
+
+Clicks the mouse in a human way on the current mouse spot.
+
+.. note::
+
+    by SRL Community, modified by Drags111 for Titan.
+
+*)
+procedure ClickMouse(Left: Boolean); overload;
+var
+  T, X, Y : Integer;
+  Button: TMouseButton;
+begin
+  case Left of
+      True: Button := mbLeft;
+      False: Button := mbRight;
+  end;
+  GetMousePos(X, Y);
+  HoldMouse(X, Y, Button);
+  repeat
+    Time.Wait(20 + Rnd(30));
+    T++;
+  until (T > 4);
+  GetMousePos(X, Y);
+  ReleaseMouse(X, Y, Button);
+  Wait(50+Rnd(50));
+end;
+
+(*
+CMouse
+~~~~~~
+
+.. code-block:: pascal
+
+    procedure CMouse(mousex, mousey, ranx, rany: Integer; left: Boolean);  overload;
+
+Moves then clicks mouse.
+
+.. note::
+
+    by Mutant Squirrle, with a small fix by hy71194
+
+*)
+procedure CMouse(MouseX, MouseY, RanX, RanY: Integer; Left: Boolean); overload;
+begin
+  MMouse(MouseX, MouseY, RanX, RanY);
+  Time.Wait(60 + Rnd(30));
+  ClickMouse(Left);
+  Time.Wait(50 + Rnd(50));
+end;
+
+(*
+CMouse
+~~~~~~
+
+.. code-block:: pascal
+
+    procedure CMouse(P: TPoint; RanX, RanY: Integer; Left: Boolean); overload;
+
+Moves then clicks the mouse.
+
+.. note::
+
+    by Drags111
+
+*)
+procedure CMouse(P: TPoint; RanX, RanY: Integer; Left: Boolean); overload;
+begin
+  CMouse(P.X, P.Y, RanX, RanY, Left);
+end;
+
+end.

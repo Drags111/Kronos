@@ -1,0 +1,411 @@
+unit kronos.lib.methods.Calculations;
+
+(*
+Calculations
+============
+
+Contains special functions used for calculating certain things. Usually heavy
+end functions and used throughout the include.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    //kronos.lib.wrappers.Node,
+    //kronos.lib.wrappers.NodeCache,
+    Types;
+
+  function GetCollisionMap(out CollisionMap: T2DIntArray): Boolean;
+  function DijkstraDist(StartX, StartY, DestX, DestY: Integer; IsObject: Boolean; Blocks: T2DIntArray): Integer;
+  function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Integer; overload;
+  function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean): Integer; overload;
+  //function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
+
+implementation
+
+(*
+GetCollisionMap
+~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetCollisionMap(out CollisionMap: T2DIntArray): Boolean;
+
+Returns a 2-dimensional array of the information stored in each tile in
+a loaded plane. Used to calculate if a tile is reachable or not.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetCollisionMap(out CollisionMap: T2DIntArray): Boolean;
+var
+  X, Y: Integer;
+  GroundDataArray, MyPlayer, Plane, GroundData, BlocksObj: Integer;
+begin
+  GroundDataArray := SmartGetFieldObject(0, hook_static_GetGroundDataArray);
+  MyPlayer := SmartGetFieldObject(0, hook_static_MyPlayer);
+  Plane := SmartGetFieldByte(MyPlayer, hook_animable_Plane);
+
+  if(SmartGetFieldArraySize(GroundDataArray, '', 1) < Plane)then
+  begin
+    Result := False;
+    SmartFreeObject(GroundDataArray);
+    SmartFreeObject(MyPlayer);
+    Print('GroundDataArray Length is less than Plane');
+    Exit;
+  end;
+
+  GroundData := SmartGetFieldArrayObject(GroundDataArray, '', Plane);
+  BlocksObj := SmartGetFieldObject(GroundData, hook_grounddata_GetCollisionFlags);
+
+  if(GroundData = 0) or (BlocksObj = 0)then
+  begin
+    Result := False;
+    SmartFreeObject(GroundDataArray);
+    SmartFreeObject(MyPlayer);
+    SmartFreeObject(GroundData);
+    SmartFreeObject(BlocksObj);
+    Print('GroundData or BlocksObj is null');
+    Exit;
+  end;
+
+  Result := True;
+
+  SetLength(CollisionMap, 104);
+  for X := 0 to 103 do
+  begin
+    SetLength(CollisionMap[X], 104);
+    for Y := 0 to 103 do
+    begin
+      CollisionMap[X][Y] := SmartGetFieldArray2DInt(BlocksObj, '', X, Y);
+    end;
+  end;
+  SmartFreeObject(GroundDataArray);
+  SmartFreeObject(MyPlayer);
+  SmartFreeObject(GroundData);
+  SmartFreeObject(BlocksObj);
+end;
+
+(*
+DijkstraDist
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function DijkstraDist(StartX, StartY, DestX, DestY: Integer; IsObject: Boolean; Blocks: T2DIntArray): Integer;
+
+Tries to find the shortest path from one tile to another avoiding walls and
+objects. If a path exists, returns the number of tiles of the path length. Used
+in CanReach to determine if your character is able to reach a specified tile,
+and future use for Web Walking.
+
+.. note::
+
+  by Drags111
+
+*)
+function DijkstraDist(StartX, StartY, DestX, DestY: Integer; IsObject: Boolean; Blocks: T2DIntArray): Integer;
+var
+  prev, dist: array of array of Integer;
+  path_x, path_y: array of Integer;
+  xx, yy, curr_x, curr_y, path_ptr, step_ptr, pathLength, goal, cost: Integer;
+  foundPath: Boolean;
+begin
+  try
+    SetLength(prev, 104);
+    SetLength(dist, 104);
+    for xx := 0 to 103 do
+    begin
+      SetLength(prev[xx], 104);
+      SetLength(dist[xx], 104);
+    end;
+    for xx := 0 to 103 do
+      for yy := 0 to 103 do
+      begin
+        prev[xx][yy] := 0;
+        dist[xx][yy] := 99999999;
+      end;
+
+    SetLength(path_x, 4000);
+    SetLength(path_y, 4000);
+
+    curr_x := startX;
+    curr_y := startY;
+    prev[startX][startY] := 99;
+    dist[startX][startY] := 0;
+    path_ptr := 0;
+    step_ptr := 0;
+    path_x[path_ptr] := startX;
+    path_y[path_ptr] := startY;
+    Inc(path_ptr);
+    pathLength := 4000;
+    foundPath := false;
+
+    case IsObject of
+      true: goal := 1;
+      false: goal := 0;
+    end;
+
+    while(step_ptr <> path_ptr)do
+    begin
+      curr_x := path_x[step_ptr];
+      curr_y := path_y[step_ptr];
+
+      if(Abs(curr_x - destX) + Abs(curr_y - destY) = goal)then
+      begin
+        foundPath := true;
+        break;
+      end;
+
+      step_ptr := (step_ptr + 1) mod pathLength;
+      cost := dist[curr_x][curr_y] + 1;
+
+      //south
+      if((curr_y > 0)
+        and (prev[curr_x][(curr_y - 1)] = 0)
+        and ((blocks[(curr_x + 1)][curr_y] and $1280102) = 0))then
+      begin
+        path_x[path_ptr] := curr_x;
+        path_y[path_ptr] := curr_y - 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x][curr_y - 1] := 1;
+        dist[curr_x][curr_y - 1] := cost;
+      end;
+
+      // west
+      if((curr_x > 0)
+        and (prev[curr_x - 1][curr_y] = 0)
+        and ((blocks[curr_x][curr_y + 1] and $1280108) = 0))then
+      begin
+        path_x[path_ptr] := curr_x - 1;
+        path_y[path_ptr] := curr_y;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x - 1][curr_y] := 2;
+        dist[curr_x - 1][curr_y] := cost;
+      end;
+
+      // north
+      if((curr_y < 102)
+        and (prev[curr_x][curr_y + 1] = 0)
+        and ((blocks[curr_x + 1][curr_y + 2] and $1280120) = 0))then
+      begin
+        path_x[path_ptr] := curr_x;
+        path_y[path_ptr] := curr_y + 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x][curr_y + 1] := 4;
+        dist[curr_x][curr_y + 1] := cost;
+      end;
+
+      // east
+      if ((curr_x < 102)
+        and (prev[curr_x + 1][curr_y] = 0)
+        and ((blocks[curr_x + 2][curr_y + 1] and $1280180) = 0))then
+      begin
+        path_x[path_ptr] := curr_x + 1;
+        path_y[path_ptr] := curr_y;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x + 1][curr_y] := 8;
+        dist[curr_x + 1][curr_y] := cost;
+      end;
+
+      // south west
+      if((curr_x > 0) and (curr_y > 0)
+        and (prev[curr_x - 1][curr_y - 1] = 0)
+        and ((blocks[curr_x][curr_y] and $128010E) = 0)
+        and ((blocks[curr_x][curr_y + 1] and $1280108) = 0)
+        and ((blocks[curr_x + 1][curr_y] and $1280102) = 0))then
+      begin
+        path_x[path_ptr] := curr_x - 1;
+        path_y[path_ptr] := curr_y - 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x - 1][curr_y - 1] := 3;
+        dist[curr_x - 1][curr_y - 1] := cost;
+      end;
+
+      // north west
+      if((curr_x > 0) and (curr_y < 102)
+        and (prev[curr_x - 1][curr_y + 1] = 0)
+        and ((blocks[curr_x][curr_y + 2] and $1280138) = 0)
+        and ((blocks[curr_x][curr_y + 1] and $1280108) = 0)
+        and ((blocks[curr_x + 1][curr_y + 2] and $1280120) = 0))then
+      begin
+        path_x[path_ptr] := curr_x - 1;
+        path_y[path_ptr] := curr_y + 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x - 1][curr_y + 1] := 6;
+        dist[curr_x - 1][curr_y + 1] := cost;
+      end;
+
+      // south east
+      if((curr_x < 102) and (curr_y > 0)
+        and (prev[curr_x + 1][curr_y - 1] = 0)
+        and ((blocks[curr_x + 2][curr_y] and $1280183) = 0)
+        and ((blocks[curr_x + 2][curr_y + 1] and $1280180) = 0)
+        and ((blocks[curr_x + 1][curr_y] and $1280102) = 0))then
+      begin
+        path_x[path_ptr] := curr_x + 1;
+        path_y[path_ptr] := curr_y - 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x + 1][curr_y - 1] := 9;
+        dist[curr_x + 1][curr_y - 1] := cost;
+      end;
+
+      // north east
+      if((curr_x < 102) and (curr_y < 102)
+        and (prev[curr_x + 1][curr_y + 1] = 0)
+        and ((blocks[curr_x + 2][curr_y + 2] and $12801E0) = 0)
+        and ((blocks[curr_x + 2][curr_y + 1] and $1280180) = 0)
+        and ((blocks[curr_x + 1][curr_y + 2] and $1280120) = 0))then
+      begin
+        path_x[path_ptr] := curr_x + 1;
+        path_y[path_ptr] := curr_y + 1;
+        path_ptr := (path_ptr + 1) mod pathLength;
+        prev[curr_x + 1][curr_y + 1] := 12;
+        dist[curr_x + 1][curr_y + 1] := cost;
+      end;
+    end;
+
+    if foundPath then
+    begin
+      Result := dist[curr_x][curr_y];
+    end else
+      Result := -1;
+
+  except
+    Result := -1;
+  end;
+end;
+
+(*
+PathLengthBetween
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean; Blocks: array of TIntegerArray): Integer;
+
+Returns the length between 2 tiles via path distance. (Going around objects and
+such).
+
+.. note::
+
+  by Drags111
+
+*)
+function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Integer; overload;
+var
+  BaseX, BaseY: Integer;
+  x1, y1, x2, y2: Integer;
+begin
+  try
+    BaseX := SmartGetFieldInt(0, hook_static_BaseX);
+    BaseY := SmartGetFieldInt(0, hook_static_BaseY);
+    x1 := Start.X - BaseX;
+    y1 := Start.Y - BaseY;
+    x2 := Dest.X - BaseX;
+    y2 := Dest.Y - BaseY;
+
+    Result := DijkstraDist(x1, y1, x2, y2, isObject, CollisionMap); // From the plugin
+  except
+    Result := -1;
+  end;
+end;
+
+(*
+PathLengthBetween
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean): Integer;
+
+Returns the length between 2 tiles via path distance. (Going around objects and
+such).
+
+.. note::
+
+  by Drags111
+
+*)
+function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean): Integer; overload;
+var
+  CollisionMap: T2DIntArray;
+begin
+  try
+    if not GetCollisionMap(CollisionMap)then
+    begin
+      Print('Unable to retrieve collision map.');
+      Exit;
+    end;
+    Result := PathLengthBetween(Start, Dest, IsObject, CollisionMap);
+  except
+    Result := -1;
+  end;
+end;
+
+
+(*
+FindNodeByID
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
+
+Finds the node in a cache by its ID.
+
+.. note::
+
+  by Drags111
+
+*)  {
+function FindNodeByID(NodeCache: TNodeCache; ID: Integer): TNode;
+var
+  Cache: TNodeArray;
+  N, Node: TNode;
+begin
+  try
+
+    Result := nil;
+    if(NodeCache = nil) or (ID < 0)then
+      Exit;
+
+    Cache := NodeCache.GetNodeArray;
+    if(Length(Cache) < 1)then
+      Exit;
+
+    N := Cache[Integer(ID and (Length(Cache) - 1))];
+    if not Assigned(N)then
+      Exit;
+
+    Node := N.GetPrevious;
+    while(Assigned(Node) and (not SmartIsNull(Node.RawObject)) and (not Node.Equals(N)))do
+    begin
+      if(Node.GetID = ID)then
+      begin
+        Result := Node;
+        Exit;
+      end;
+      Node.Previous;
+    end;
+
+    Node.Free;
+  finally
+    FreeNodeArray(Cache);
+    if(Assigned(N))then
+    begin
+      try
+        N.Free;
+      except
+      end;
+    end;
+  end;
+end;     }
+
+end.

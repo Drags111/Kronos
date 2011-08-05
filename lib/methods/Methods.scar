@@ -1,0 +1,164 @@
+unit kronos.lib.methods.Methods;
+
+(*
+Methods
+=======
+
+Contains all of the basic functions and procedures that are common throughout
+the include and do not necessarily have a particular category.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    Math, Types;
+
+  function GetMyPos: TTile;
+  function GetMyLocPos: TTile;
+  function GetMyPlane: Integer;
+  function GetSetting(Setting: Integer): Integer;
+
+implementation
+
+(*
+GetMyPos
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetMyPos: TTile;
+
+Returns your current tile.
+
+.. note::
+
+  by Benland100
+
+*)
+function GetMyPos: TTile;
+var
+  Me: Integer;
+begin
+  Me := SmartGetFieldObject(0, hook_static_MyPlayer);
+  Result.x := SmartGetFieldInt(0, hook_static_BaseX) + SmartGetFieldInt(Me, hook_animable_PixelX) div 512;
+  Result.y := SmartGetFieldInt(0, hook_static_BaseY) + SmartGetFieldInt(Me, hook_animable_PixelY) div 512;
+  SmartFreeObject(Me);
+end;
+
+(*
+GetMyLocPos
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetMyLocPos: TTile;
+
+Returns your local position.
+
+.. note::
+
+  by Benland100
+
+*)
+function GetMyLocPos: TTile;
+var
+  Me: Integer;
+begin
+  Me := SmartGetFieldObject(0, hook_static_MyPlayer);
+  Result.x := (SmartGetFieldInt(Me, hook_animable_PixelX) - SmartGetFieldInt(0, hook_static_BaseX)) div 512;
+  Result.y := (SmartGetFieldInt(Me, hook_animable_PixelY) - SmartGetFieldInt(0, hook_static_BaseY)) div 512;
+  SmartFreeObject(Me);
+end;
+
+(*
+GetMyPlane
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetMyPlane: Integer;
+
+Returns your current plane. (ground level, underground, above ground, etc.)
+
+.. note::
+
+  by Benland100
+
+*)
+function GetMyPlane: Integer;
+var
+  Me: Integer;
+begin
+  Me := SmartGetFieldObject(0, hook_static_MyPlayer);
+  Result := SmartGetFieldByte(Me, hook_animable_Plane);
+  SmartFreeObject(Me);
+end;
+
+(*
+R_GetSettingArray
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function R_GetSettingArray: TIntegerArray;
+
+Retrives the Settings array from the client.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetSettingArray: TIntArray;
+var
+  SettingArray, Data, DL, i: Integer;
+begin
+  try
+    SettingArray := SmartGetFieldObject(0, hook_static_GetSettings);
+    Data := SmartGetFieldObject(SettingArray, hook_settingarray_GetData);
+
+    DL := SmartGetFieldArraySize(Data, '', 1);
+    SetLength(Result, DL);
+    for i := 0 to DL-1 do
+      Result[i] := SmartGetFieldArrayInt(data, '', i);
+
+  finally
+    SmartFreeObject(Data);
+    SmartFreeOBject(SettingArray);
+  end;
+end;
+
+(*
+R_GetSetting
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function R_GetSetting(Setting: Integer): Integer;
+
+Gets the setting value at the specified index.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetSetting(Setting: Integer): Integer;
+var
+  SA: TIntArray;
+begin
+  SA := GetSettingArray;
+  if(Setting < Length(SA))then
+    Result := SA[Setting]
+  else
+  begin
+    Println('Incorrect setting index passed to GetSetting');
+    Result := -1;
+  end;
+end;
+
+end.

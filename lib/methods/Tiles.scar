@@ -1,0 +1,461 @@
+unit kronos.lib.methods.Tiles;
+
+(*
+Tiles
+=====
+
+This file relates to Map and Screen locations and converting them to Tiles. The
+methods and formulas here relate to hooks into the Runescape Client's rendering
+system, and therefore a brief description about how those work will help a lot.
+
+The Runescape world is laid out on a large grid. A coordinate on this grid is
+called a Tile. The origin (0,0) is somewhere in the South Western corner of the
+world, and the coordinates increase in the North Easternly direction.
+
+A loading area is a smaller grid 104x104 tiles in size whose bounds can be
+variable. The origin of the loading area is stored in the client as the global
+tile position (BaseX, BaseY), therefore your local Tile position is your global
+Tile position minux the origin of the loading area.
+
+A tile is rendered as 512x512 pixels. Most positions in the renderer data are
+measured in pixels. This means the loading area is 13312x13312 pixels in size.
+to convert a local Tile into a pixel measurement, simply multiply the local Tile
+coordinates by 512.
+
+Each corner of a tile has a height stored in a 2D array in the current Plane
+object. To calculate the average height of a tile, simply average the height of
+its corners.
+
+The client provides a rotation matrix, offset, and scaling values to transform
+a "world" pixel coordinate into a "screen" coordinate. The formula for doing
+this is found in the TileToMSEx function. Since one often requires sub tile
+accuracy, offset values in the range of [0,1] are provided. (0.5,0.5) would be
+the center, and (0,0) would be the south-west corner of the tile.
+
+The minimap is simply a perfectly verticle view of the ground as if it were
+perfectly flat. Tiles here have a size of 4x4 pixels, and the map is rotated
+around your current position by an angle stored in MapAngle. The angle is in
+the range [0,16384], with 0 being North and increasing counter-clockwise. The
+math for converting a Tile into a "minimap" coordinate is provided in TileToMM.
+
+  -Benland100
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.methods.Methods,
+    kronos.lib.methods.Calculations,
+    Time, Types, Math;
+
+  function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
+  function TileToMS(Tile: TTile; Height: Integer): TPoint; overload;
+  function TileOnMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): Boolean; overload;
+  function TileOnMS(Tile: TTile; Height: Integer): Boolean; overload;
+  function CanReach(Tile: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Boolean; overload;
+  function CanReach(Tile: TTile; IsObject: Boolean): Boolean; overload;
+
+implementation
+
+type
+  {Stores the rotation matrix used by the client to render to the main
+   screen, along with offsets.}
+  TRenderData = class
+  public
+    XOff,XX,XY,XZ: Extended;
+    YOff,YX,YY,YZ: Extended;
+    ZOff,ZX,ZY,ZZ: Extended;
+
+    constructor Create;
+    destructor Destroy; override;
+    procedure Update;
+    procedure Clear;
+  end;
+
+  {Stores information about the rendered world including ranges
+   for acceptable values, and scaling factors.}
+  TRender = class
+  public
+    XScale,YScale: Extended;
+    XMin,XMax: Extended;
+    YMin,Ymax: Extended;
+    ZMax,ZMin: Extended;
+
+    constructor Create;
+    destructor Destroy; override;
+    procedure Update;
+    procedure Clear;
+  end;
+
+  constructor TRenderData.Create;
+  begin
+    inherited Create;
+    UnfreedObjects.Add(Self);
+    Clear;
+  end;
+
+  destructor TRenderData.Destroy; override;
+  begin
+    UnfreedObjects.Remove(Self);
+    inherited;
+  end;
+
+  procedure TRenderData.Update;
+  var
+    Toolkit, Viewport, T: Integer;
+  begin
+    T := SysTime;
+    while((ZX <= 0) and (ZY <= 0) and ((SysTime - T) < 10000))do
+    begin
+      Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
+      Viewport := SmartGetFieldObject(Toolkit, hook_sdtoolkit_Viewport);
+
+      XOff := SmartGetFieldFloat(Viewport, hook_sdviewport_xOff);
+      XX := SmartGetFieldFloat(Viewport, hook_sdviewport_xX);
+      XY := SmartGetFieldFloat(Viewport, hook_sdviewport_xY);
+      XZ := SmartGetFieldFloat(Viewport, hook_sdviewport_xZ);
+      YOff := SmartGetFieldFloat(Viewport, hook_sdviewport_yOff);
+      YX := SmartGetFieldFloat(Viewport, hook_sdviewport_yX);
+      YY := SmartGetFieldFloat(Viewport, hook_sdviewport_yY);
+      YZ := SmartGetFieldFloat(Viewport, hook_sdviewport_yZ);
+      ZOff := SmartGetFieldFloat(Viewport, hook_sdviewport_zoff);
+      ZX := SmartGetFieldFloat(Viewport, hook_sdviewport_zX);
+      ZY := SmartGetFieldFloat(Viewport, hook_sdviewport_zY);
+      ZZ := SmartGetFieldFloat(Viewport, hook_sdviewport_zZ);
+
+      SmartFreeObject(Viewport);
+      SmartFreeObject(Toolkit);
+    end;
+  end;
+
+  procedure TRenderData.Clear;
+  begin
+    XOff := -1;
+    XX := -1;
+    XY := -1;
+    XZ := -1;
+    YOff := -1;
+    YX := -1;
+    YY := -1;
+    YZ := -1;
+    ZOff := -1;
+    ZX := -1;
+    ZY := -1;
+    ZZ := -1;
+  end;
+
+  constructor TRender.Create;
+  begin
+    inherited Create;
+    UnfreedObjects.Add(Self);
+    Clear;
+  end;
+
+  destructor TRender.Destroy; override;
+  begin
+    UnfreedObjects.Remove(Self);
+    inherited;
+  end;
+
+  procedure TRender.Update;
+  var
+    Toolkit, Viewport, T: Integer;
+    ZX, ZY: Extended;
+  begin
+    T := SysTime;
+    ZX := -1;
+    ZY := -1;
+    while((ZX <= 0) and (ZY <= 0) and ((SysTime - T) < 10000))do
+    begin
+      Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
+      Viewport := SmartGetFieldObject(Toolkit, hook_sdtoolkit_Viewport);
+
+      ZX := SmartGetFieldFloat(Viewport, hook_sdviewport_zX);
+      ZY := SmartGetFieldFloat(Viewport, hook_sdviewport_zY);
+
+      if(ZX > 0) or (ZY > 0)then
+        Break;
+
+      SmartFreeObject(Viewport);
+      SmartFreeObject(Toolkit);
+    end;
+
+    XScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xScale);
+    YScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yScale);
+    XMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMin);
+    XMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMax);
+    YMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMin);
+    YMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMax);
+    ZMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMin);
+    ZMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMax);
+
+    SmartFreeObject(Viewport);
+    SmartFreeObject(Toolkit);
+  end;
+
+  procedure TRender.Clear;
+  begin
+    XScale := -1;
+    YScale := -1;
+    XMin := -1;
+    XMax := -1;
+    YMin := -1;
+    YMax := -1;
+    ZMin := -1;
+    zMax := -1;
+  end;
+
+(*
+GetTileHeight
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetTileHeight(tile: TTile) : integer;
+
+Finds the average height of the global tile provided the tile is in the current
+loading area and on a loaded plane.
+
+.. note::
+
+  by BenLand100
+
+*)
+function GetTileHeight(Tile: TTile): Integer;
+var
+  X, Y, CurPlane, GroundSetting, PlaneInstance: Integer;
+begin
+  X := Tile.X - SmartGetFieldInt(0, hook_static_BaseX);
+  Y := Tile.Y - SmartGetFieldInt(0, hook_static_BaseY);
+  if ((X < 0) or (X > 104) or (Y < 0) or (Y > 104)) then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  CurPlane := SmartGetFieldInt(0, hook_static_LoadedPlane);
+  GroundSetting := SmartGetFieldArray3DByte(0, hook_static_GroundSettingsArray, 1, X, Y);
+  if ((CurPlane < 3) and ((GroundSetting and 2) <> 0)) then
+    CurPlane := CurPlane + 1;
+  PlaneInstance := SmartGetFieldArrayObject(0, hook_static_PlaneArray, CurPlane);
+  Result := Round((SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X, Y) +
+            SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X + 1, Y) +
+            SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X, Y + 1) +
+            SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X + 1, Y + 1)) / 4);
+  if(Result = -1)then
+    Print('****************TileHight hooks are incorrect.*****************');
+  SmartFreeObject(PlaneInstance);
+end;
+
+(*
+World3DToScreen
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function World3DToScreen(xx, yy, zz: Extended): TPoint;
+
+Converts a RS 3D point to a coordinate on the screen.
+
+.. note::
+
+  by Benland100
+
+*)
+function World3DToScreen(XX, YY, ZZ: Extended): TPoint;
+var
+  RD: TRenderData;
+  R: TRender;
+  X, Y, Z: Extended;
+  Tries: Integer;
+label
+  ProcStart;
+begin
+  RD := TRenderData.Create;
+  R := TRender.Create;
+  Tries := 0;
+
+  ProcStart:
+  R.Clear;
+  RD.Clear;
+  X := 0;
+  Y := 0;
+  Z := 0;
+  Inc(Tries);
+  Result := Point(-1,-1);
+  R.Update;
+  RD.Update;
+  Z := RD.ZOff + (RD.ZX * XX + RD.ZY * YY + RD.ZZ * ZZ);
+  if ((Z < R.ZMin) or (Z > R.ZMax)) then
+    Exit;
+  X:= R.XScale * (RD.XOff + (RD.XX * XX + RD.XY * YY + RD.XZ * ZZ)) / Z;
+  Y:= R.YScale * (RD.YOff + (RD.YX * XX + RD.YY * YY + RD.YZ * ZZ)) / Z;
+  if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
+  begin
+    Result.X:= Round((X - R.XMin) + 4);
+    Result.Y:= Round((Y - R.YMin) + 4);
+  end else
+  begin
+    if (Tries > 30)then
+      Exit;
+    goto ProcStart;
+  end;
+end;
+
+(*
+TileToMS
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TileToMS(Tile: TTile; OffX, OffU: Extended; Height: Integer): TPoint; overload;
+
+Converts the global tile position, a position on that tile in the range
+[(0,0), (1,1)] with (0.5, 0.5) being center and a height above ground level to
+a screen location on the main screen, taking camera position and rotation into
+account.
+
+.. note::
+
+  by Benland100
+
+*)
+function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
+var
+  PixelX, PixelY, PixelZ: Extended;
+  B: TBox;
+  P: TPoint;
+begin
+  PixelX := (Tile.X - SmartGetFieldInt(0, hook_static_BaseX) + OffX) * 512.0;
+  PixelY := GetTileHeight(Tile) - Height;
+  PixelZ := (tile.y - SmartGetFieldInt(0, hook_static_BaseY) + OffY) * 512.0;
+  Result := World3DToScreen(PixelX, PixelY, PixelZ);
+  B := Box(MSX1, MSY1, MSX2, MSY2);
+  P := Result;
+  if not B.InBox(P)then
+  begin
+    Result.X := -1;
+    Result.Y := -1;
+  end;
+end;
+
+(*
+TileToMS
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TileToMS(Tile: TTile; Height: Integer): TPoint; overload;
+
+Converts the center of a global tile position and a height above ground level
+to a screen location on the main screen, taking camera position and rotation
+into account.
+
+.. note::
+
+  by BenLand100
+
+*)
+function TileToMS(Tile: TTile; Height: Integer): TPoint; overload;
+begin
+  Result:= TileToMS(Tile, 0.5, 0.5, height);
+end;
+
+(*
+TileOnMS
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TileOnMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): Boolean; overload;
+
+Results true if the Tile is on the MS.
+
+.. note::
+
+  by Drags111
+
+*)
+function TileOnMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): Boolean; overload;
+var
+  B: TBox;
+begin
+  B := Box(MSX1, MSY1, MSX2, MSY2);
+  Result := B.InBox(TileToMS(Tile, offX, offY, Height));
+end;
+
+(*
+TileOnMS
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TileOnMS(Tile: TTile; Height : Integer) : Boolean;
+
+Results true if the Tile is on the MS.
+
+.. note::
+
+  by Drags111
+
+*)
+function TileOnMS(Tile: TTile; Height: Integer): Boolean; overload;
+var
+  B: TBox;
+begin
+  B := Box(MSX1, MSY1, MSX2, MSY2);
+  Result := B.InBox(TileToMS(Tile, Height));
+end;
+
+(*
+CanReach
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function CanReach(Tile: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Boolean; overload;
+
+Returns true if a tile is reachable from your current position.
+
+.. note::
+
+  by Drags111
+
+*)
+function CanReach(Tile: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Boolean; overload;
+begin
+  try
+    Result := PathLengthBetween(GetMyPos, Tile, IsObject, CollisionMap) <> -1;
+  except
+    Result := False;
+  end;
+end;
+
+(*
+CanReach
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function CanReach(Tile: TTile; IsObject: Boolean): Boolean;
+
+Returns true if a tile is reachable from your current position.
+
+.. note::
+
+  by Drags111
+
+*)
+function CanReach(Tile: TTile; IsObject: Boolean): Boolean;
+begin
+  try
+    Result := PathLengthBetween(GetMyPos, Tile, IsObject) <> -1;
+  except
+    Result := False;
+  end;
+end;
+
+end.
