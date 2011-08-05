@@ -49,6 +49,7 @@ interface
   function SmartStringFromBytes(const Bytes: Integer; const Str: AnsiString): Integer;
   function SmartStringFromChars(const Chars: Integer; const Str: AnsiString): Integer;
   function SmartStringFromString(const JStr: Integer; Str: AnsiString): Integer;
+  function TrimHTML(S : String): String;
   function GetJavaString(JavaString: Integer; MaxLength: Integer): String;
   function SmartInvokeIntMethod(const Obj: Integer; const Clazz, Meth: AnsiString; const a, b: Integer): Integer;
 
@@ -370,6 +371,25 @@ begin
   Result := _SmartStringFromString(JStr, PAnsiChar(Str));
 end;
 
+function TrimHTML(S : String): String;
+var
+  P, P2, PLength: Integer;
+  Temp: String;
+begin
+  P := Pos('<', S);
+  P2 := Pos('>', S);
+  Result := S;
+  PLength := P2 - P + 1;
+  while (P <> 0) and (P2 <> 0) do
+  begin
+    Delete(Result, P, PLength);
+    P := Pos('<', Result);
+    Temp := Result;
+    Delete(Temp, 1, P - 1);
+    PLength := Pos('>', Temp);
+  end;
+end;
+
 function GetJavaString(JavaString: Integer; MaxLength: Integer): String;
 var
   Str: AnsiString;
@@ -377,7 +397,7 @@ begin
   try
     SetLength(Str, MaxLength);
     SetLength(Str, SmartStringFromString(JavaString, Str));
-    Result := Str;
+    Result := TrimHTML(Str);
     Result := Strings.Replace(Result, 'Â', '');
     Result := Strings.Replace(Result, #160, #32);
   except
