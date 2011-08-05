@@ -31,6 +31,9 @@ interface
     kronos.lib.core.Globals,
     kronos.lib.wrappers.Renderable,
     kronos.lib.wrappers.Node,
+    kronos.lib.wrappers.NodeCache,
+    kronos.lib.wrappers.NodeList,
+    kronos.lib.wrappers.RSObject,
     Types;
 
   procedure SetupKronos;
@@ -123,6 +126,12 @@ begin
         Println(' Instance of TRenderable;')
       else if(UnfreedObjects[0] is TNode)then
         Println(' Instance of TNode;')
+      else if(UnfreedObjects[0] is TNodeCache)then
+        Println(' Instance of TNodeCache;')
+      else if(UnfreedObjects[0] is TNodeList)then
+        Println(' Instance of TNodeList;')
+      else if(UnfreedObjects[0] is TRSObjectDef)then
+        Println(' Instance of TRSObjectDef;')
       else
         Println('');
       UnfreedObjects[0].Free;

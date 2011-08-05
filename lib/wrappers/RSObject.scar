@@ -20,12 +20,475 @@ interface
   uses
     kronos.smart.SMART,
     kronos.lib.core.Hooks,
-    kronos.lib.wrappers.RenderableEntity;
+    kronos.lib.core.Globals,
+    kronos.lib.wrappers.RenderableEntity,
+    kronos.lib.wrappers.Node,
+    kronos.lib.wrappers.NodeCache,
+    kronos.lib.methods.Calculations,
+    Types;
 
   type
+    TObjType = (INTERACTIVE1, INTERACTIVE2, WALLOBJECT1, WALLOBJECT2,
+                WALLDECORATION1, WALLDECORATION2, FLOORDECORATION1,
+                FLOORDECORATION2);
+
     TRSObject = class(TRenderableEntity)
+      public
+        ObjType: TObjType;
+
+        function GetID: Integer;
+        function GetOrientation: Integer;
+        function GetName: String;
+        function GetActions: TStrArray;
+        function GetChildrenIDs: TIntArray;
+        function GetDef: TRSObjectDef;
+        function Equals(RSObject: TRSObject): Boolean;
+    end;
+
+    TRSObjectArray = array of TRSObject;
+
+    TRSObjectDef = class
+      public
+        Obj: Integer;
+        RSObject: TRSObject;
+
+        constructor Create(Obj: Integer; RSObject: TRSObject);
+        destructor Destroy; override;
+
+        function GetName: String;
+        function GetActions: TStrArray;
+        function GetChildrenIDs: TIntArray;
     end;
 
 implementation
+
+(*
+GetID
+~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetID: Integer;
+
+Returns the ID of the given object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetID: Integer;
+var
+  Composite: Integer;
+begin
+  Result := -1;
+  Composite := 0;
+
+  case ObjType of
+    INTERACTIVE1: Result := SmartGetFieldShort(Obj, hook_interactiveobject_GetID);
+
+    WALLOBJECT1, WALLOBJECT2: begin
+      Result := SmartGetFieldShort(Obj, hook_WallObjectData_GetID);
+      if(Result = -1) and (ObjType = WALLOBJECT2)then
+        Composite := SmartGetFieldObject(Obj, hook_wallobjectsub2_GetComposite);
+    end;
+
+    WALLDECORATION1: Result := SmartGetFieldShort(Obj, hook_WallDecorationData_GetID);
+
+    FLOORDECORATION1: Result := SmartGetFieldShort(Obj, hook_FloorDecorationData_GetID);
+
+    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+
+    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_walldecorationsub2_GetComposite);
+
+    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_floordecorationsub2_GetComposite);
+
+    else Exit;
+  end;
+
+  if not SmartIsNull(Composite)then
+  begin
+    Result := SmartGetFieldInt(Composite, hook_secondlevelobject_GetID);
+    SmartFreeObject(Composite);
+  end;
+
+  if(Result = -1)then
+    Exit;
+
+  Result := Result and $FFFF;
+end;
+
+(*
+GetOrientation
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetOrientation: Integer;
+
+Returns the orientation of the object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetOrientation: Integer;
+var
+  Composite: Integer;
+begin
+  Result := -1;
+  Composite := 0;
+
+  case ObjType of
+    INTERACTIVE1: Result := SmartGetFieldByte(Obj, hook_interactiveobject_GetOrientation);
+
+    WALLOBJECT1, WALLOBJECT2: begin
+      Result := SmartGetFieldByte(Obj, hook_WallObjectData_GetOrientation);
+      if(Result = -1) and (ObjType = WALLOBJECT2)then
+        Composite := SmartGetFieldObject(Obj, hook_wallobjectsub2_GetComposite);
+    end;
+
+    WALLDECORATION1: Result := SmartGetFieldByte(Obj, hook_WallDecorationData_GetOrientation);
+
+    FLOORDECORATION1: Result := SmartGetFieldByte(Obj, hook_FloorDecorationData_GetOrientation);
+
+    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+
+    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_walldecorationsub2_GetComposite);
+
+    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_floordecorationsub2_GetComposite);
+
+    else Exit;
+  end;
+
+  if not SmartIsNull(Composite)then
+  begin
+    Result := SmartGetFieldInt(Composite, hook_secondlevelobject_GetOrientation);
+    SmartFreeObject(Composite);
+  end;
+end;
+
+(*
+GetName
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetName: String;
+
+Accesses the Object Def and retrieves the name of the object. Some reports of
+the def not actually loading in the client until your mouse hovers the object.
+May or may not return the name properly.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetName: String;
+var
+  Def: TRSObjectDef;
+begin
+  Result := '';
+  Def := GetDef;
+  if(Assigned(Def))then
+  begin
+    Result := Def.GetName;
+    Def.Free;
+  end;
+end;
+
+(*
+GetActions
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetActions: TStrArray;
+
+Same as the GetName above, but returns the list of actions you can perform on
+the object (when right clicking).
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetActions: TStrArray;
+var
+  Def: TRSObjectDef;
+begin
+  SetLength(Result, 0);
+  Def := GetDef;
+  if(Assigned(Def))then
+  begin
+    Result := Def.GetActions;
+    Def.Free;
+  end;
+end;
+
+(*
+GetChildrenIDs
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetChildrenIDs: TIntArray;
+
+Same as the GetName above, but returns the list of the children IDs of the
+object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetChildrenIDs: TIntArray;
+var
+  Def: TRSObjectDef;
+begin
+  SetLength(Result, 0);
+  Def := GetDef;
+  if(Assigned(Def))then
+  begin
+    Result := Def.GetChildrenIDs;
+    Def.Free;
+  end;
+end;
+
+(*
+GetDef
+~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetDef: TRSObjectDef;
+
+Returns the Object Def of the object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetDef: TRSObjectDef;
+var
+  ObjDefLoader, MRUNodes, Hard, SoftReference, Soft: Integer;
+  NodeCache: TNodeCache;
+  Node: TNode;
+begin
+  Result := nil;
+
+  ObjDefLoader := SmartGetFieldObject(0, hook_static_getObjectDefLoader);
+  MRUNodes := SmartGetfieldObject(ObjDefLoader, hook_objectdefloader_getMRUNodes);
+  NodeCache := TNodeCache.Create(SmartGetfieldObject(MRUNodes, hook_mrunodes_getNodeCache));
+  SmartFreeObject([MRUNodes, ObjDefLoader]);
+
+  Node := FindNodeByID(NodeCache, GetID);
+  if(Assigned(NodeCache))then
+    NodeCache.Free;
+  if(Node = nil) or (SmartIsNull(Node.Obj))then
+  begin
+    if(Assigned(Node))then
+      Node.Free;
+    Exit;
+  end;
+
+  Hard := SmartGetFieldObject(Node.Obj, hook_hardreference_getObject);
+  if not SmartIsNull(Hard)then
+  begin
+    Result := TRSObjectDef.Create(Hard, Self);
+    Node.Free;
+    Exit;
+  end;
+
+  SoftReference := SmartGetFieldObject(Node.Obj, hook_softreference_getReference);
+  Soft := SmartGetFieldObject(SoftReference, 'referent');
+  if not SmartIsNull(SoftReference)then
+    SmartFreeObject(SoftReference);
+  Node.Free;
+
+  if(SmartIsNull(Soft))then
+    Exit;
+
+  Result := TRSObjectDef.Create(Soft, Self);
+end;
+
+(*
+Equals
+~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.Equals(RSObject: TRSObject): Boolean;
+
+Returns true if the RSObject inputed in the params equals the current object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.Equals(RSObject: TRSObject): Boolean;
+begin
+  Result := (GetID = RSObject.GetID) and (GetPos = RSObject.GetPos);
+end;
+
+//----------------------------------------------------------------------------//
+//--                             RSObjectDef                                --//
+//----------------------------------------------------------------------------//
+//--  The RSObjectDef is used to get special properties of objects that you --//
+//--  can't retrieve straight from the object's class. These properties     --//
+//--  include name, actions, and their children ID's.                       --//
+//----------------------------------------------------------------------------//
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TRSObjectDef.Create(Obj: Integer; RSObject: TRSObject);
+
+Creates the TRSObjectDef object and sets the object reference to Obj.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TRSObjectDef.Create(Obj: Integer; RSObject: TRSObject);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+  Self.RSObject := RSObject;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TRSObjectDef.Destroy; override;
+
+Called when TRSObject.Free is called, this overrides the default Destroy method
+to free the object reference from SMART's memory before this object is freed.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TRSObjectDef.Destroy; override;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+  UnfreedObjects.Remove(Self);
+  inherited;
+end;
+
+(*
+GetName
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObjectDef.GetName: String;
+
+Retrieves the name from the loaded object def.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObjectDef.GetName: String;
+begin
+  Result := SmartGetFieldString(Obj, hook_objectdef_GetName);
+end;
+
+(*
+GetActions
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObjectDef.GetActions: TStrArray;
+
+Retrieves the action list from the loaded object def.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObjectDef.GetActions: TStrArray;
+var
+  L, I, C: Integer;
+  Temp: TStrArray;
+begin
+  L := SmartGetFieldArraySize(Obj, hook_objectdef_getActions, 1);
+  SetLength(Result, L);
+  if(L < 1)then
+    Exit;
+
+  C := 0;
+  Temp := SmartGetFieldArrayString(Obj, hook_objectdef_getActions);
+
+  for I := 0 to L-1 do
+  begin
+    if(Temp[I] <> '')then
+      Result[C++] := Temp[I];
+  end;
+
+  SetLength(Result, C);
+end;
+
+(*
+GetChildrenIDs
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObjectDef.GetChildrenIDs: TIntArray;
+
+Returns an array of the object's children ID's from the loaded object def.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObjectDef.GetChildrenIDs: TIntArray;
+begin
+  Result := SmartGetFieldArrayInt(Obj, hook_objectdef_getChildrenIDs);
+end;
+
+(*
+FreeRSObjectArray
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure FreeRSObjectArray(Objects: TRSObjectArray);
+
+Frees an array of TRSObjects.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure FreeRSObjectArray(Objects: TRSObjectArray);
+var
+  I: Integer;
+begin
+  for I := 0 to High(Objects)do
+    if(Assigned(Objects[I]))then
+      Objects[I].Free;
+end;
 
 end.
