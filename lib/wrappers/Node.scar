@@ -1,0 +1,241 @@
+unit kronos.lib.wrappers.Node;
+
+(*
+RenderableEntity
+================
+
+The TNode class holds the information, functions, and procedures regarding
+Nodes. A Node is a circular list of information.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals;
+
+  type
+    TNode = class
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+
+        procedure Next;
+        procedure Previous;
+        function GetNext: TNode;
+        function GetPrevious: TNode;
+        function GetID: Integer;
+        function Equals(Node: TNode): Boolean;
+
+    end;
+    TNodeArray = array of TNode;
+
+  procedure FreeNodeArray(var Nodes: TNodeArray);
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TNode.Create(Obj: Integer);
+
+Creates the TNode and sets the object reference to Obj.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TNode.Create(Obj: Integer);
+begin
+  inherited Create;
+  Self.Obj := Obj;
+  UnfreedObjects.Add(Self);
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNode.Destroy;
+
+Called when .Free is called. This overrides the Destroy function to free the
+Object Reference from smart when the TNode is freed.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNode.Destroy;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+  UnfreedObjects.Remove(Self);
+  inherited;
+end;
+
+(*
+Next
+~~~~
+
+.. code-block:: pascal
+
+    procedure TNode.Next;
+
+Sets the Obj to the next node in the series.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure TNode.Next;
+var
+  Last: Integer;
+begin
+  Last := Obj;
+  Obj := SmartGetFieldObject(Obj, hook_node_Next);
+  SmartFreeObject(Last);
+end;
+
+(*
+Previous
+~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure TNode.Previous;
+
+Sets the Obj to the previous node in the series.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure TNode.Previous;
+var
+  Last: Integer;
+begin
+  Last := Obj;
+  Obj := SmartGetFieldObject(Obj, hook_node_Previous);
+  SmartFreeObject(Last);
+end;
+
+(*
+GetNext
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNode.GetNext: TNode;
+
+Returns the next node in the series without changing the current one.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNode.GetNext: TNode;
+begin
+  Result := TNode.Create(SmartGetFieldObject(Obj, hook_node_Next));
+end;
+
+(*
+GetPrevious
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNode.GetPrevious: TNode;
+
+Returns the previous node in the series without changing the current one.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNode.GetPrevious: TNode;
+begin
+  Result := TNode.Create(SmartGetFieldObject(Obj, hook_node_Previous));
+end;
+
+(*
+GetID
+~~~~~
+
+.. code-block:: pascal
+
+    function TNode.GetID: Integer;
+
+Returns the ID of the current node.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNode.GetID: Integer;
+begin
+  Result := SmartGetFieldLongL(Obj, hook_node_GetID);
+end;
+
+(*
+Equals
+~~~~~~
+
+.. code-block:: pascal
+
+    function TNode.Equals(Node: TNode): Boolean;
+
+Returns true if the nodes are the same.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNode.Equals(Node: TNode): Boolean;
+begin
+  Result := SmartIsEqual(Obj, Node.Obj);
+end;
+
+(*
+FreeNodeArray
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure FreeNodeArray(var Nodes: TNodeArray);
+
+Frees a TNodeArray and sets the length of the array to 0.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure FreeNodeArray(var Nodes: TNodeArray);
+var
+  I, L: Integer;
+begin
+  L := (High(Nodes));
+  for I := 0 to High(Nodes)do
+    Nodes[I].Free;
+
+  SetLength(Nodes, 0);
+end;
+
+end.

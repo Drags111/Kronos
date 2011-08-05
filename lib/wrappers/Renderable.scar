@@ -18,6 +18,7 @@ interface
 
   uses
     kronos.smart.SMART,
+    kronos.lib.core.Hooks,
     kronos.lib.core.Globals;
 
   type
@@ -27,6 +28,11 @@ interface
 
         constructor Create(Obj: Integer);
         destructor Destroy; override;
+
+        function GetLocalX: Integer;
+        function GetLocalY: Integer;
+        function GetPos: TTile;
+        function GetPlane: Integer;
     end;
 
 implementation
@@ -77,6 +83,88 @@ begin
     SmartFreeObject(Obj);
   UnfreedObjects.Remove(Self);
   inherited;
+end;
+
+(*
+GetPlane
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRenderable.GetPlane: Integer;
+
+Returns the current plane of the Renderable object. (above ground, underground,
+etc).
+
+.. note::
+
+  by Drags111
+
+*)
+function TRenderable.GetPlane: Integer;
+begin
+  Result := SmartGetFieldByte(Obj, hook_animable_Plane);
+end;
+
+(*
+GetLocalX
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRenderable.GetLocalX: Integer;
+
+Returns the current local X position of the Renderable object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRenderable.GetLocalX: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_animable_PixelX);
+end;
+
+(*
+GetLocalY
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRenderable.GetLocalY: Integer;
+
+Returns the current local Y position of the Renderable object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRenderable.GetLocalY: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_animable_PixelY);
+end;
+
+(*
+GetPos
+~~~~~~
+
+.. code-block:: pascal
+
+    function TRenderable.GetPos: TTile;
+
+Returns the current tile of the Renderable object.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRenderable.GetPos: TTile;
+begin
+  Result.X := SmartGetFieldInt(0, hook_static_BaseX) + (GetLocalX shr 9);
+  Result.Y := SmartGetFieldInt(0, hook_static_BaseY) + (GetLocalY shr 9);
 end;
 
 end.

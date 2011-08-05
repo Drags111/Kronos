@@ -1,8 +1,8 @@
 unit kronos.lib.wrappers.RenderableEntity;
 
 (*
-Renderable
-==========
+RenderableEntity
+================
 
 Child of the Renderable class, RenderableEntity provides the simple function of
 grabbing the tile area of the object. Superclass of characters and objects.
@@ -13,12 +13,44 @@ interface
 
   uses
     kronos.smart.SMART,
-    kronos.lib.wrappers.Renderable;
+    kronos.lib.core.Hooks,
+    kronos.lib.wrappers.Renderable,
+    Types;
 
   type
     TRenderableEntity = class(TRenderable)
+      public
+        function GetArea: TBox;
     end;
 
 implementation
+
+(*
+GetArea
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TRenderableEntity.GetArea: TBox;
+
+Returns a TBox of the area of tiles that the Renderable object takes up. For
+example, a tree takes up four tiles.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRenderableEntity.GetArea: TBox;
+var
+  BaseX, BaseY: Integer;
+begin
+  BaseX := SmartGetFieldInt(0, hook_static_BaseX);
+  BaseY := SmartGetFieldInt(0, hook_static_BaseY);
+  Result.X1 := BaseX + SmartGetFieldShort(Obj, hook_animableentity_GetAreaX1);
+  Result.Y1 := BaseY + SmartGetFieldShort(Obj, hook_animableentity_GetAreaY1);
+  Result.X2 := BaseX + SmartGetFieldShort(Obj, hook_animableentity_GetAreaX2);
+  Result.Y2 := BaseY + SmartGetFieldShort(Obj, hook_animableentity_GetAreaY2);
+end;
 
 end.

@@ -29,6 +29,7 @@ interface
     kronos.lib.core.Hooks,
     kronos.lib.core.Globals,
     kronos.lib.wrappers.Renderable,
+    kronos.lib.wrappers.Node,
     Types;
 
   procedure SetupKronos;
@@ -119,6 +120,8 @@ begin
     try
       if(UnfreedObjects[0] is TRenderable)then
         Println(' Instance of TRenderable;')
+      else if(UnfreedObjects[0] is TNode)then
+        Println(' Instance of TNode;')
       else
         Println('');
       UnfreedObjects[0].Free;
