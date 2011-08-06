@@ -95,30 +95,30 @@ begin
   Composite := 0;
 
   case ObjType of
-    INTERACTIVE1: Result := SmartGetFieldShort(Obj, hook_interactiveobject_GetID);
+    INTERACTIVE1: Result := SmartGetFieldShort(Obj, hook_InteractiveObject1_GetID);
 
     WALLOBJECT1, WALLOBJECT2: begin
-      Result := SmartGetFieldShort(Obj, hook_WallObjectData_GetID);
+      Result := SmartGetFieldShort(Obj, hook_WallObject1_GetID);
       if(Result = -1) and (ObjType = WALLOBJECT2)then
-        Composite := SmartGetFieldObject(Obj, hook_wallobjectsub2_GetComposite);
+        Composite := SmartGetFieldObject(Obj, hook_WallObject2_GetComposite);
     end;
 
-    WALLDECORATION1: Result := SmartGetFieldShort(Obj, hook_WallDecorationData_GetID);
+    WALLDECORATION1: Result := SmartGetFieldShort(Obj, hook_WallDecoration1_GetID);
 
-    FLOORDECORATION1: Result := SmartGetFieldShort(Obj, hook_FloorDecorationData_GetID);
+    FLOORDECORATION1: Result := SmartGetFieldShort(Obj, hook_FloorDecoration1_GetID);
 
-    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_InteractiveObject2_GetComposite);
 
-    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_walldecorationsub2_GetComposite);
+    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_WallDecoration2_GetComposite);
 
-    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_floordecorationsub2_GetComposite);
+    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_FloorDecoration2_GetComposite);
 
     else Exit;
   end;
 
   if not SmartIsNull(Composite)then
   begin
-    Result := SmartGetFieldInt(Composite, hook_secondlevelobject_GetID);
+    Result := SmartGetFieldInt(Composite, hook_ObjectComposite_GetID);
     SmartFreeObject(Composite);
   end;
 
@@ -151,30 +151,30 @@ begin
   Composite := 0;
 
   case ObjType of
-    INTERACTIVE1: Result := SmartGetFieldByte(Obj, hook_interactiveobject_GetOrientation);
+    INTERACTIVE1: Result := SmartGetFieldByte(Obj, hook_InteractiveObject1_GetOrientation);
 
     WALLOBJECT1, WALLOBJECT2: begin
-      Result := SmartGetFieldByte(Obj, hook_WallObjectData_GetOrientation);
+      Result := SmartGetFieldByte(Obj, hook_WallObject1_GetOrientation);
       if(Result = -1) and (ObjType = WALLOBJECT2)then
-        Composite := SmartGetFieldObject(Obj, hook_wallobjectsub2_GetComposite);
+        Composite := SmartGetFieldObject(Obj, hook_WallObject2_GetComposite);
     end;
 
-    WALLDECORATION1: Result := SmartGetFieldByte(Obj, hook_WallDecorationData_GetOrientation);
+    WALLDECORATION1: Result := SmartGetFieldByte(Obj, hook_WallDecoration1_GetOrientation);
 
-    FLOORDECORATION1: Result := SmartGetFieldByte(Obj, hook_FloorDecorationData_GetOrientation);
+    FLOORDECORATION1: Result := SmartGetFieldByte(Obj, hook_FloorDecoration1_GetOrientation);
 
-    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+    INTERACTIVE2: Composite := SmartGetFieldObject(Obj, hook_InteractiveObject2_GetComposite);
 
-    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_walldecorationsub2_GetComposite);
+    WALLDECORATION2: Composite := SmartGetFieldObject(Obj, hook_WallDecoration2_GetComposite);
 
-    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_floordecorationsub2_GetComposite);
+    FLOORDECORATION2: Composite := SmartGetFieldObject(Obj, hook_FloorDecoration2_GetComposite);
 
     else Exit;
   end;
 
   if not SmartIsNull(Composite)then
   begin
-    Result := SmartGetFieldInt(Composite, hook_secondlevelobject_GetOrientation);
+    Result := SmartGetFieldInt(Composite, hook_ObjectComposite_GetOrientation);
     SmartFreeObject(Composite);
   end;
 end;

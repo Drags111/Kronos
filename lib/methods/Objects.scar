@@ -25,11 +25,11 @@ implementation
 
 var
   HOOKNAMES: TStrArray = [
-    hook_ground_WallObject1,
-    hook_ground_WallDecoration1,
-    hook_ground_FloorDecoration,
-    hook_ground_WallObject2,
-    hook_ground_WallDecoration2
+    hook_Ground_WallObject1,
+    hook_Ground_WallDecoration1,
+    hook_Ground_FloorDecoration1,
+    hook_Ground_WallObject2,
+    hook_Ground_WallDecoration2
   ];
 
   OBJECTTYPES: array of TObjType = [
@@ -73,14 +73,14 @@ begin
     Obj := SmartGetFieldObject(Node, hook_AnimableNode_GetAnimable);
     if not SmartIsNull(Obj)then
     begin
-      ID := SmartGetFieldShort(Obj, hook_interactiveobject_GetID) and $FFFF;
+      ID := SmartGetFieldShort(Obj, hook_InteractiveObject1_GetID) and $FFFF;
       if(ID <> 65535)then
         Result[C++] := TRSObject.Create(Obj, INTERACTIVE1)
       else
       begin
-        Composite := SmartGetFieldObject(Obj, hook_interactiveobject2_GetObjectData);
+        Composite := SmartGetFieldObject(Obj, hook_InteractiveObject2_GetComposite);
         try
-          if(not SmartIsNull(Composite))and (SmartGetFieldInt(Composite, hook_secondlevelobject_GetID) and $FFFF <> 65535)then
+          if(not SmartIsNull(Composite))and (SmartGetFieldInt(Composite, hook_ObjectComposite_GetID) and $FFFF <> 65535)then
             Result[C++] := TRSObject.Create(Obj, INTERACTIVE2)
           else
             SmartFreeObject(Obj);
