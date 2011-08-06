@@ -10,7 +10,7 @@ unit kronos.smart.SMART;
 //                                                                            \\
 //  ************************************************************************  \\
 
-{$PLUGIN LibSmart}
+{$GP LibSmart}
 
 interface
 
