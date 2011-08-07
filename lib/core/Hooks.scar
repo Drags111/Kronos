@@ -196,7 +196,7 @@ interface
     hook_NPCDef_GetLoader = 'X'; {Lra;}
     hook_NPCDef_GetLevel = 'Z'; {I}
     hook_NPCDef_GetID = 'sb'; {I}
-    hook_NPCDef_GetChildrenIDs = 'S'; {[I}
+    hook_NPCDef_GetParentIDs = 'S'; {[I}
     hook_NPCDef_GetSettingIndex = 't'; {I}
 
   {Class NPCDefLoader}

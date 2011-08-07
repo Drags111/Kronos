@@ -52,6 +52,36 @@ interface
     kronos.lib.methods.Calculations,
     Time, Types, Math;
 
+  type
+    {Stores the rotation matrix used by the client to render to the main
+     screen, along with offsets.}
+    TRenderData = class
+    public
+      XOff,XX,XY,XZ: Extended;
+      YOff,YX,YY,YZ: Extended;
+      ZOff,ZX,ZY,ZZ: Extended;
+
+      constructor Create;
+      destructor Destroy; override;
+      procedure Update;
+      procedure Clear;
+    end;
+
+    {Stores information about the rendered world including ranges
+     for acceptable values, and scaling factors.}
+    TRender = class
+    public
+      XScale,YScale: Extended;
+      XMin,XMax: Extended;
+      YMin,Ymax: Extended;
+      ZMax,ZMin: Extended;
+
+      constructor Create;
+      destructor Destroy; override;
+      procedure Update;
+      procedure Clear;
+    end;
+
   function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
   function TileToMS(Tile: TTile; Height: Integer): TPoint; overload;
   function TileOnMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): Boolean; overload;
@@ -60,36 +90,6 @@ interface
   function CanReach(Tile: TTile; IsObject: Boolean): Boolean; overload;
 
 implementation
-
-type
-  {Stores the rotation matrix used by the client to render to the main
-   screen, along with offsets.}
-  TRenderData = class
-  public
-    XOff,XX,XY,XZ: Extended;
-    YOff,YX,YY,YZ: Extended;
-    ZOff,ZX,ZY,ZZ: Extended;
-
-    constructor Create;
-    destructor Destroy; override;
-    procedure Update;
-    procedure Clear;
-  end;
-
-  {Stores information about the rendered world including ranges
-   for acceptable values, and scaling factors.}
-  TRender = class
-  public
-    XScale,YScale: Extended;
-    XMin,XMax: Extended;
-    YMin,Ymax: Extended;
-    ZMax,ZMin: Extended;
-
-    constructor Create;
-    destructor Destroy; override;
-    procedure Update;
-    procedure Clear;
-  end;
 
   constructor TRenderData.Create;
   begin
@@ -276,32 +276,39 @@ label
 begin
   RD := TRenderData.Create;
   R := TRender.Create;
-  Tries := 0;
+  try
+    Tries := 0;
 
-  ProcStart:
-  R.Clear;
-  RD.Clear;
-  X := 0;
-  Y := 0;
-  Z := 0;
-  Inc(Tries);
-  Result := Point(-1,-1);
-  R.Update;
-  RD.Update;
-  Z := RD.ZOff + (RD.ZX * XX + RD.ZY * YY + RD.ZZ * ZZ);
-  if ((Z < R.ZMin) or (Z > R.ZMax)) then
-    Exit;
-  X:= R.XScale * (RD.XOff + (RD.XX * XX + RD.XY * YY + RD.XZ * ZZ)) / Z;
-  Y:= R.YScale * (RD.YOff + (RD.YX * XX + RD.YY * YY + RD.YZ * ZZ)) / Z;
-  if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
-  begin
-    Result.X:= Round((X - R.XMin) + 4);
-    Result.Y:= Round((Y - R.YMin) + 4);
-  end else
-  begin
-    if (Tries > 30)then
+    ProcStart:
+    R.Clear;
+    RD.Clear;
+    X := 0;
+    Y := 0;
+    Z := 0;
+    Inc(Tries);
+    Result := Point(-1,-1);
+    R.Update;
+    RD.Update;
+    Z := RD.ZOff + (RD.ZX * XX + RD.ZY * YY + RD.ZZ * ZZ);
+    if ((Z < R.ZMin) or (Z > R.ZMax)) then
       Exit;
-    goto ProcStart;
+    X:= R.XScale * (RD.XOff + (RD.XX * XX + RD.XY * YY + RD.XZ * ZZ)) / Z;
+    Y:= R.YScale * (RD.YOff + (RD.YX * XX + RD.YY * YY + RD.YZ * ZZ)) / Z;
+    if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
+    begin
+      Result.X:= Round((X - R.XMin) + 4);
+      Result.Y:= Round((Y - R.YMin) + 4);
+    end else
+    begin
+      if (Tries > 30)then
+        Exit;
+      goto ProcStart;
+    end;
+  finally
+    if Assigned(R)then
+      R.Free;
+    if Assigned(RD)then
+      RD.Free;
   end;
 end;
 

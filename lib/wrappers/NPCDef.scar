@@ -1,0 +1,492 @@
+unit kronos.lib.wrappers.NPCDef;
+
+(*
+NPCDef
+======
+
+The NPCDef class holds the information of NPCs, such as their name, level,
+actions, models, etc.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.methods.Methods,
+    kronos.lib.methods.Calculations,
+    kronos.lib.wrappers.NodeCache,
+    kronos.lib.wrappers.Node,
+    Types;
+
+  type
+    TNPCDef = class
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+
+        function GetID: Integer;
+        function GetName: String;
+        function GetActions: TStrArray;
+        function GetLevel: Integer;
+        function GetLoader: TNPCDefLoader;
+        function GetParentIDs: TIntArray;
+        function GetSettingIndex: Integer;
+        function GetParent: TNPCDef;
+    end;
+
+  type
+    TNPCDefLoader = class
+      public
+        Obj: Integer;
+
+        constructor Create(Obj: Integer);
+        destructor Destroy; override;
+
+        function GetNPCDef(ID: Integer): TNPCDef;
+    end;
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TNPCDef.Create(Obj: Integer);
+
+Creates the TNPCDef and sets the object reference to ObjRef.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TNPCDef.Create(Obj: Integer);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNPCDef.Destroy;
+
+Overrides the Destroy function. When the TNPCDef is freed, it checks to see if
+the ObjRef needs to be freed from SMART.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNPCDef.Destroy;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+  UnfreedObjects.Remove(Self);
+  inherited;
+end;
+
+(*
+GetID
+~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetID: Integer;
+
+Returns the ID of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetID: Integer;
+var
+  ParentIDs: TIntArray;
+  Parent: TNPCDef;
+begin
+  ParentIDs := GetParentIDs;
+  if(Length(ParentIDs) > 0)then
+  begin
+    Parent := GetParent;
+    if Assigned(Parent)then
+    begin
+      Result := Parent.GetID;
+      Parent.Free;
+      Exit;
+    end;
+  end;
+  Result := SmartGetFieldInt(Obj, hook_NPCDef_GetID);
+end;
+
+(*
+GetName
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetName: String;
+
+Returns the name of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetName: String;
+var
+  ParentIDs: TIntArray;
+  Parent: TNPCDef;
+begin
+  ParentIDs := GetParentIDs;
+  if(Length(ParentIDs) > 0)then
+  begin
+    Parent := GetParent;
+    if Assigned(Parent)then
+    begin
+      Result := Parent.GetName;
+      Parent.Free;
+      Exit;
+    end;
+  end;
+  Result := SmartGetFieldString(Obj, hook_NPCDef_GetName);
+end;
+
+(*
+GetActions
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetActions: TStrArray;
+
+Returns the Action list of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetActions: TStrArray;
+var
+  ParentIDs: TIntArray;
+  Parent: TNPCDef;
+begin
+  ParentIDs := ParentIDs;
+  if(Length(ParentIDs) > 0)then
+  begin
+    Parent := GetParent;
+    if Assigned(Parent)then
+    begin
+      Result := Parent.GetActions;
+      Parent.Free;
+      Exit;
+    end;
+  end;
+  Result := SmartGetFieldArrayString(Obj, hook_NPCDef_GetActions);
+end;
+
+(*
+GetLevel
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetLevel: Integer;
+
+Returns the Level of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetLevel: Integer;
+var
+  ParentIDs: TIntArray;
+  Parent: TNPCDef;
+begin
+  ParentIDs := GetParentIDs;
+  if(Length(ParentIDs) > 0)then
+  begin
+    Parent := GetParent;
+    if Assigned(Parent)then
+    begin
+      Result := Parent.GetLevel;
+      Parent.Free;
+      Exit;
+    end;
+  end;
+  Result := SmartGetFieldInt(Obj, hook_NPCDef_GetLevel);
+end;
+
+(*
+GetParentIDs
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetParentIDs: TIntArray;
+
+Returns the NPC's parent ID's.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetParentIDs: TIntArray;
+var
+  Setting: Integer;
+begin
+  Result := SmartGetFieldArrayInt(Obj, hook_NPCDef_GetParentIDs);
+  Setting := GetSettingIndex;
+end;
+
+(*
+GetSettingIndex
+~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetSettingIndex: Integer;
+
+Returns the setting index of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetSettingIndex: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_NPCDef_GetSettingIndex);
+end;
+
+(*
+GetLoader
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetLoader: TNPCDefLoader;
+
+Grabs the loader of the NPCDef.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetLoader: TNPCDefLoader;
+var
+  Loader: Integer;
+begin
+  Result := nil;
+  Loader := SmartGetFieldObject(Obj, hook_NPCDef_GetLoader);
+  if SmartIsNull(Loader)then
+    Exit;
+  Result := TNPCDefLoader.Create(Loader);
+end;
+
+(*
+GetParent
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetParent: TNPCDef;
+
+Gets the NPCDef of the current NPCDef's parent.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetParent: TNPCDef;
+var
+  ParentIDs: TIntArray;
+  Loader: TNPCDefLoader;
+  B: Boolean;
+  Index1, Index2: Integer;
+begin
+  Result := nil;
+  ParentIDs := GetParentIDs;
+  if(Length(ParentIDs) < 1)then
+    Exit;
+
+  Loader := GetLoader;
+  if not Assigned(Loader)then
+    Exit;
+
+  B := False;
+  Index1 := -1;
+
+  if(GetSettingIndex = -1)then
+    B := True;
+
+  if not B then
+    Index1 := GetSetting(GetSettingIndex);
+
+  if((Integer(Cardinal(Index1) xor $FFFFFFFF) > -1) or (Index1 >= Length(ParentIDs) - 1) or
+    (ParentIDs[Index1] = -1) or B)then
+  begin
+    Index2 := ParentIDs[High(ParentIDs)];
+    if(Index2 <> -1)then
+    begin
+      Result := Loader.GetNPCDef(Index2);
+      Loader.Free;
+      Exit;
+    end;
+    Loader.Free;
+    Exit;
+  end;
+
+  Result := Loader.GetNPCDef(ParentIDs[Index1]);
+  Loader.Free;
+end;
+
+//----------------------------------------------------------------------------//
+//--                             NPCDefLoader                               --//
+//----------------------------------------------------------------------------//
+//--  The NPCDefLoader is used to retrieve the NPCDef of NPC's children.    --//
+//--  Some NPC's such as the ones in Prison Pete return "null" as their     --//
+//--  names and don't give you specifics. Finding their children will allow --//
+//--  you to access their real name and model info.                         --//
+//----------------------------------------------------------------------------//
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TNPCDefLoader.Create(Obj: Integer);
+
+Creates the NPCDefLoader object with the object reference specified by obj.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TNPCDefLoader.Create(Obj: Integer);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+end;
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNPCDefLoader.Destroy; override;
+
+Called when TNPCDefLoader.Free is called, overrides the default Destroy method
+to free the object reference from SMART at the objects destruction.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNPCDefLoader.Destroy; override;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+  UnfreedObjects.Remove(Self);
+  inherited;
+end;
+
+(*
+GetNPCDef
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDefLoader.GetNPCDef(ID: Integer): TNPCDef;
+
+Returns the NPCDef of the ID from the loader.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDefLoader.GetNPCDef(ID: Integer): TNPCDef;
+var
+  Composites, CacheObj, NodeObj, Def, SoftReference, Soft: Integer;
+  NodeCache: TNodeCache;
+  Node: TNode;
+begin
+  Result := nil;
+  Composites := SmartGetFieldObject(Obj, hook_NPCDefLoader_Composites);
+  if SmartIsNull(Composites)then
+    Exit;
+
+  CacheObj := SmartGetFieldObject(Composites, hook_MRUNodes_GetNodeCache);
+  SmartFreeObject(Composites);
+  if SmartIsNull(CacheObj)then
+    Exit;
+
+  NodeCache := TNodeCache.Create(CacheObj);
+  Node := FindNodeByID(NodeCache, ID);
+  if not Assigned(Node)then
+  begin
+    NodeCache.Free;
+    Exit;
+  end;
+
+  NodeObj := Node.Obj;
+  if SmartIsNull(NodeObj)then
+  begin
+    NodeCache.Free;
+    Node.Free;
+    Exit;
+  end;
+
+  Def := SmartGetFieldObject(NodeObj, hook_HardReference_GetObject);
+  if SmartIsNull(Def)then
+  begin
+    SoftReference := SmartGetFieldObject(NodeObj, hook_SoftReference_GetReference);
+    Soft := SmartGetFieldObject(SoftReference, 'referent');
+    if not SmartIsNull(SoftReference)then
+      SmartFreeObject(SoftReference);
+    if SmartIsNull(Soft)then
+    begin
+      if Assigned(NodeCache)then
+        NodeCache.Free;
+      if Assigned(Node)then
+        Node.Free;
+      Exit;
+    end;
+
+    Def := Soft;
+  end;
+
+  Result := TNPCDef.Create(Def);
+  if Assigned(NodeCache)then
+    NodeCache.Free;
+  if Assigned(Node)then
+    Node.Free;
+end;
+
+end.

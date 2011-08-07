@@ -1,0 +1,157 @@
+unit kronos.lib.methods.NPCs;
+
+interface
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.wrappers.NPC,
+    kronos.lib.wrappers.Character,
+    kronos.lib.methods.Methods,
+    kronos.lib.methods.Calculations,
+    Types;
+
+  function GetNPCs(Names: TStrArray): TNPCArray;
+  function GetNPC(Name: String): TNPC;
+
+implementation
+
+(*
+GetNPCCount
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetNPCCount: Integer;
+
+Returns the number of NPC's in the area.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetNPCCount: Integer;
+begin
+  Result := SmartGetFieldInt(0, hook_static_NPCCount);
+end;
+
+(*
+SortNPCs
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function SortNPCs(NPCs: TNPCArray): TNPCArray;
+
+Sorts NPCs by distance from you.
+
+.. note::
+
+  by Widget edited by lordsaturn
+
+*)
+function SortNPCs(NPCs: TNPCArray): TNPCArray;
+var
+  I,I2, L: integer;
+  TPA: TPointArray;
+begin
+  L := Length(NPCs);
+  if L < 1 then Exit;
+  SetLength(TPA, L);
+  SetLength(Result, L);
+  for i := 0 to L-1 do
+    TPA[i] := NPCs[i].GetPos;
+  SortTPAFrom(TPA, GetMyPos);
+  for i := 0 to L-1 do
+    for i2 := 0 to L-1 do
+      if (TPA[i].x=NPCs[i2].GetPos.x) and (TPA[i].y=NPCs[i2].GetPos.y) then
+        Result[i] := NPCs[i2];
+end;
+
+(*
+GetNPCs
+~~~~~~~
+
+.. code-block:: pascal
+
+    function GetNPCs(Names: TStrArray): TNPCArray;
+
+Returns a TNPCArray of all the npcs that contain one of the names. Then sorts
+the array from the closest to the farthest.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetNPCs(Names: TStrArray): TNPCArray;
+var
+  NumNPCs, H, C, I: Integer;
+  TheNPCNode: Integer;
+  Temp: TNPC;
+  NPCs: TNPCArray;
+begin
+  SetLength(Result, 0);
+  NumNPCs := GetNPCCount;
+  if (NumNPCs < 1) then
+    Exit;
+
+  C := 0;
+  SetLength(NPCs, NumNPCs);
+  H := NumNPCs-1;
+  for I := 0 to H do
+  begin
+    TheNPCNode := SmartGetFieldArrayObject(0, hook_static_NPCNodes, I);
+    Temp := TNPC.Create(SmartGetFieldObject(TheNPCNode, hook_npcnode_GetNPC), NPC);
+    SmartFreeObject(TheNPCNode);
+
+    if not InStrArray(Names, Temp.GetName)then
+    begin
+      Temp.Free;
+      Continue;
+    end;
+
+    NPCs[C] := Temp;
+    Inc(C);
+  end;
+  SetLength(NPCs, C);
+  Result := SortNPCs(NPCs);
+end;
+
+(*
+GetNPC
+~~~~~~
+
+.. code-block:: pascal
+
+    function GetNPC(Name: String): TNPC;
+
+Returns a TNPC of the npc that contains the name. Returns the closest one to
+you.
+
+.. note::
+
+  by Drags111
+
+*)
+function GetNPC(Name: String): TNPC;
+var
+  NPCs: TNPCArray;
+  I: Integer;
+begin
+  Result := nil;
+  NPCs := GetNPCs([Name]);
+  if(Length(NPCs) < 1)then
+    Exit;
+
+  Result := NPCs[0];
+
+  if(Length(NPCs) = 1)then
+    Exit;
+
+  for I := 1 to High(NPCs)do
+    NPCs[I].Free;
+end;
+
+end.

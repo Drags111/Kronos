@@ -120,19 +120,13 @@ Retrives the Settings array from the client.
 *)
 function GetSettingArray: TIntArray;
 var
-  SettingArray, Data, DL, i: Integer;
+  SettingArray: Integer;
 begin
+  SetLength(Result, 0);
   try
     SettingArray := SmartGetFieldObject(0, hook_static_GetSettings);
-    Data := SmartGetFieldObject(SettingArray, hook_settingarray_GetData);
-
-    DL := SmartGetFieldArraySize(Data, '', 1);
-    SetLength(Result, DL);
-    for i := 0 to DL-1 do
-      Result[i] := SmartGetFieldArrayInt(data, '', i);
-
+    Result := SmartGetFieldArrayInt(SettingArray, hook_SettingArray_GetData);
   finally
-    SmartFreeObject(Data);
     SmartFreeOBject(SettingArray);
   end;
 end;
@@ -157,7 +151,7 @@ var
   SA: TIntArray;
 begin
   SA := GetSettingArray;
-  if(Setting < Length(SA))then
+  if(Setting < Length(SA)) and (Setting >= 0)then
     Result := SA[Setting]
   else
   begin

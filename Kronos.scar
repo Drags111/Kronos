@@ -35,6 +35,7 @@ interface
     kronos.lib.wrappers.NodeList,
     kronos.lib.wrappers.RSObject,
     kronos.lib.wrappers.NPCDef,
+    kronos.lib.methods.Tiles,
     Types;
 
   procedure SetupKronos;
@@ -110,8 +111,9 @@ of the Kronos unit.
 *)
 procedure CheckUnfreedObjects;
 var
-  I, H: Integer;
+  I, H, C: Integer;
 begin
+  C := 0;
   if(UnfreedObjects.Count < 1)then
   begin
     Println('There are no unfreed objects!');
@@ -121,27 +123,34 @@ begin
   H := UnfreedObjects.Count -1;
   for I := 0 to H do
   begin
+    if(UnfreedObjects.Count <= 0)then
+      Exit;
     Print('Freed Object['+ToStr(I)+'];');
     try
-      if(UnfreedObjects[0] is TRenderable)then
+      if(UnfreedObjects[C] is TRenderable)then
         Println(' Instance of TRenderable;')
-      else if(UnfreedObjects[0] is TNode)then
+      else if(UnfreedObjects[C] is TNode)then
         Println(' Instance of TNode;')
-      else if(UnfreedObjects[0] is TNodeCache)then
+      else if(UnfreedObjects[C] is TNodeCache)then
         Println(' Instance of TNodeCache;')
-      else if(UnfreedObjects[0] is TNodeList)then
+      else if(UnfreedObjects[C] is TNodeList)then
         Println(' Instance of TNodeList;')
-      else if(UnfreedObjects[0] is TRSObjectDef)then
+      else if(UnfreedObjects[C] is TRSObjectDef)then
         Println(' Instance of TRSObjectDef;')
-      else if(UnfreedObjects[0] is TNPCDef)then
+      else if(UnfreedObjects[C] is TNPCDef)then
         Println(' Instance of TNPCDef;')
-      else if(UnfreedObjects[0] is TNPCDefLoader)then
+      else if(UnfreedObjects[C] is TNPCDefLoader)then
         Println(' Instance of TNPCDefLoader;')
+      else if(UnfreedObjects[C] is TRenderData)then
+        Println(' Instance of TRenderData;')
+      else if(UnfreedObjects[C] is TRender)then
+        Println(' Instance of TRender;')
       else
         Println('');
-      UnfreedObjects[0].Free;
+      UnfreedObjects[C].Free;
     except
-      Println('Caught exception while freeing an object.');
+      Println(' Caught exception while freeing an object.');
+      C++;
     end;
   end;
 end;
