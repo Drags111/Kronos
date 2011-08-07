@@ -22,6 +22,11 @@ interface
   function GetMyPlane: Integer;
   function GetSetting(Setting: Integer): Integer;
 
+  function InIntArray(IntArray: TIntArray; Int: Integer): Boolean;
+  function InStrArray(StrArray: TStrArray; Str: String): Boolean;
+  procedure QuickTPASort(var A: TIntArray; var B: TPointArray; iLo, iHi: Integer; SortUp: Boolean);
+  procedure SortTPAFrom(var a: TPointArray; const From: TPoint); stdcall;
+
 implementation
 
 (*
@@ -159,6 +164,140 @@ begin
     Println('Incorrect setting index passed to GetSetting');
     Result := -1;
   end;
+end;
+
+(*
+InIntArray
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function InIntArray(IntArray: TIntArray; Int: Integer): Boolean;
+
+Returns true if the Int is found in the IntArray.
+
+.. note::
+
+  by Drags111
+
+*)
+function InIntArray(IntArray: TIntArray; Int: Integer): Boolean;
+var
+  I, H: Integer;
+begin
+  Result := False;
+  H := High(IntArray);
+  for I := 0 to H do
+    if(IntArray[I] = Int)then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+(*
+InStringArray
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function InStringArray(StringArray: TStrArray; Str: String): Boolean;
+
+Returns true if the Str is found in the StringArray.
+
+.. note::
+
+  by Drags111
+
+*)
+function InStrArray(StrArray: TStrArray; Str: String): Boolean;
+var
+  I, H: Integer;
+begin
+  Result := False;
+  H := High(StrArray);
+  for I := 0 to H do
+    if(StrArray[I] = Str)then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+(*
+QuickTPASort
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure QuickTPASort(var A: TIntArray; var B: TPointArray; iLo, iHi: Integer; SortUp: Boolean);
+
+.. note::
+
+  by Wizzup
+
+*)
+procedure QuickTPASort(var A: TIntArray; var B: TPointArray; iLo, iHi: Integer; SortUp: Boolean);
+var
+  Lo, Hi, Mid, T: Integer;
+  TP: TPoint;
+begin
+  if (Length(A) <> Length(B)) then Exit;
+  Lo := iLo;
+  Hi := iHi;
+  Mid := A[(Lo + Hi) shr 1];
+  repeat
+    if SortUp then
+    begin
+      while (A[Lo] < Mid) do Inc(Lo);
+      while (A[Hi] > Mid) do Dec(Hi);
+    end else
+    begin
+      while (A[Lo] > Mid) do Inc(Lo);
+      while (A[Hi] < Mid) do Dec(Hi);
+    end;
+    if (Lo <= Hi) then
+    begin
+      T := A[Lo];
+      A[Lo] := A[Hi];
+      A[Hi] := T;
+      TP := B[Lo];
+      B[Lo] := B[Hi];
+      B[Hi] := TP;
+      Inc(Lo);
+      Dec(Hi);
+    end;
+  until Lo > Hi;
+  if (Hi > iLo) then QuickTPASort(A, B, iLo, Hi, SortUp);
+  if (Lo < iHi) then QuickTPASort(A, B, Lo, iHi, SortUp);
+end;
+
+(*
+SortTPAFrom
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure SortTPAFrom(var a: TPointArray; const From: TPoint); stdcall;
+
+Sorts a TPA by distance from the point From.
+
+.. note::
+
+  by Wizzup
+
+*)
+procedure SortTPAFrom(var a: TPointArray; const From: TPoint); stdcall;
+var
+   i, l: Integer;
+   DistArr: TIntArray;
+begin
+  l := High(a);
+  if (l < 0) then Exit;
+  SetLength(DistArr, l + 1);
+  for i := 0 to l do
+    DistArr[i] := Math.Round(Math.Sqr(From.x - a[i].x) + Sqr(From.y - a[i].y));
+  QuickTPASort(DistArr, a, 0, l, True);
 end;
 
 end.

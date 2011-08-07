@@ -34,6 +34,7 @@ interface
     kronos.lib.wrappers.NodeCache,
     kronos.lib.wrappers.NodeList,
     kronos.lib.wrappers.RSObject,
+    kronos.lib.wrappers.NPCDef,
     Types;
 
   procedure SetupKronos;
@@ -132,6 +133,10 @@ begin
         Println(' Instance of TNodeList;')
       else if(UnfreedObjects[0] is TRSObjectDef)then
         Println(' Instance of TRSObjectDef;')
+      else if(UnfreedObjects[0] is TNPCDef)then
+        Println(' Instance of TNPCDef;')
+      else if(UnfreedObjects[0] is TNPCDefLoader)then
+        Println(' Instance of TNPCDefLoader;')
       else
         Println('');
       UnfreedObjects[0].Free;

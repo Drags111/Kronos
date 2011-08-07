@@ -11,12 +11,250 @@ Contains the NPC class, which retrieves the information unique to NPCs.
 interface
 
   uses
-    kronos.lib.wrappers.Character;
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.wrappers.Character,
+    kronos.lib.wrappers.NPCDef,
+    Types;
 
   type
     TNPC = class(TCharacter)
+      private
+        NPCDef: TNPCDef;
+        ID, Level: Integer;
+        Name: String;
+      public
+        destructor Destroy; override;
+
+        function GetID: Integer;
+        function GetName: String;
+        function GetLevel: Integer;
+        function GetActions: TStrArray;
+        function GetNPCDef: TNPCDef;
+        function Exists: Boolean;
     end;
+    TNPCArray = array of TNPC;
+
+  procedure FreeNPCs(NPCs: TNPCArray);
 
 implementation
+
+(*
+Destroy
+~~~~~~~
+
+.. code-block:: pascal
+
+    destructor TNPC.Destroy; override;
+
+Overrides the Destroy function. When the TNPC is freed, it checks to see if the
+NPCDef needs to be freed from SMART.
+
+.. note::
+
+  by Drags111
+
+*)
+destructor TNPC.Destroy; override;
+begin
+  if(Assigned(NPCDef))then
+    NPCDef.Free;
+
+  inherited;
+end;
+
+
+(*
+GetID
+~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.GetID: Integer;
+
+Returns the ID of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.GetID: Integer;
+begin
+  if(ID <= 0)then
+    ID := GetNPCDef.GetID;
+  Result := ID;
+end;
+
+(*
+GetName
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.GetName: String;
+
+Returns the name of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.GetName: String;
+begin
+  if(Name = '')then
+    Name := GetNPCDef.GetName;
+  Result := Name;
+end;
+
+(*
+GetLevel
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.GetLevel: Integer;
+
+Returns the level of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.GetLevel: Integer;
+begin
+  if(Level <= 0)then
+    Level := GetNPCDef.GetLevel;
+  Result := Level;
+end;
+
+(*
+GetActions
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.GetActions: TStrArray;
+
+Returns the list of actions you can perform on the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.GetActions: TStrArray;
+var
+  RawActions: TStrArray;
+  I, C, H: Integer;
+begin
+  RawActions := GetNPCDef.GetActions;
+  SetLength(Result, Length(RawActions));
+  if(Length(Result) < 1)then
+    Exit;
+
+  C := 0;
+  H := High(Result);
+  for I := 0 to H do
+    if(RawActions[I] <> '') and (RawActions[I] <> 'null')then
+      Result[C++] := RawActions[I];
+
+  SetLength(Result, C);
+end;
+
+(*
+GetNPCDef
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.GetNPCDef: TNPCDef;
+
+Returns the NPCDef private variable. If NPCDef is nil then it loads the NPCDef
+and saves it to the NPCDef variable.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.GetNPCDef: TNPCDef;
+var
+  Def: Integer;
+begin
+  if not Assigned(NPCDef)then
+  begin
+    Def := SmartGetFieldObject(Obj, hook_NPC_NPCDef);
+    NPCDef := TNPCDef.Create(Def);
+  end;
+  Result := NPCDef;
+end;
+
+(*
+Exists
+~~~~~~
+
+.. code-block:: pascal
+
+    function TNPC.Exists: Boolean;
+
+Returns true if the NPC still exists. (e.g. did it die?).
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPC.Exists: Boolean;
+var
+  NumNPCs, H, I: Integer;
+  TheNPCNode, TempNPC: Integer;
+begin
+  Result := False;
+  NumNPCs := SmartGetFieldInt(0, hook_static_NPCCount);
+  if (NumNPCs < 1) then
+    Exit;
+
+  H := NumNPCs-1;
+  for I := 0 to H do
+  try
+    TheNPCNode := SmartGetFieldArrayObject(0, hook_static_NPCNodes, I);
+    TempNPC := SmartGetFieldObject(TheNPCNode, hook_NPCNode_GetNPC);
+
+    if(SmartIsEqual(TempNPC, Obj))then
+    begin
+      Result := True;
+      Exit;
+    end;
+  finally
+    SmartFreeObject(TempNPC);
+    SmartFreeObject(TheNPCNode);
+  end;
+end;
+
+(*
+FreeNPCs
+~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure FreeNPCs(NPCs: TNPCArray);
+
+Frees a TNPCArray from memory.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure FreeNPCs(NPCs: TNPCArray);
+var
+  I: Integer;
+begin
+  for I := 0 to High(NPCs)do
+    NPCs[I].Free;
+end;
 
 end.

@@ -15,8 +15,29 @@ interface
 
   type
     TPlayer = class(TCharacter)
+      function GetName: String;
     end;
 
 implementation
+
+(*
+GetName
+~~~~~~~
+
+.. code-block:: pascal
+
+    function TPlayer.GetName: String;
+
+Returns the name of the player.
+
+.. note::
+
+  by Drags111
+
+*)
+function TPlayer.GetName: String;
+begin
+  Result := '';
+end;
 
 end.

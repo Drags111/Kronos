@@ -12,12 +12,437 @@ information of both.
 interface
 
   uses
-    kronos.lib.wrappers.RenderableEntity;
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.wrappers.RenderableEntity,
+    kronos.lib.wrappers.Node,
+    kronos.lib.wrappers.NodeCache,
+    kronos.lib.methods.Tiles,
+    kronos.lib.methods.Calculations,
+    Math, Types;
 
   type
+    TCharType = (NPC, PLAYER);
     TCharacter = class(TRenderableEntity)
+      public
+        CharType: TCharType;
+
+        constructor Create(Obj: Integer; CharType: TCharType);
+
+        function GetLoopCycleStatus: Integer;
+        function GetAnimation: Integer;
+        function GetWalkQueueX: Integer;
+        function GetWalkQueueY: Integer;
+        function GetSpeed: Integer;
+        function GetHPRatio: Integer;
+        function GetInteracting: Integer;
+        function GetHeight: Integer;
+        function GetOrientation: Integer;
+        function InCombat: Boolean;
+        function ScreenPos: TPoint;
+        function OnScreen: Boolean;
+        function GetInteractingCharacter: TCharacter;
+        function IsInteractingWithMe: Boolean;
+        function Equals(Character: TCharacter): Boolean;
     end;
 
 implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TCharacter.Create(Obj: Integer; CharType: TCharType);
+
+Creates the TCharacter object with the obj reference and CharType specified.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TCharacter.Create(Obj: Integer; CharType: TCharType);
+begin
+  inherited Create(Obj);
+  Self.CharType := CharType;
+end;
+
+(*
+GetLoopCycleStatus
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetLoopCycleStatus: Integer;
+
+Returns the characters's current loop cycle status.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetLoopCycleStatus: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_LoopCycleStatus);
+end;
+
+(*
+GetAnimation
+~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetAnimation: Integer;
+
+Returns the characters's current animation.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetAnimation: Integer;
+var
+  Animations: TIntArray;
+begin
+  Result := -1;
+  Animations := SmartGetFieldArrayInt(Obj, hook_character_AnimationQueue);
+  if(Length(Animations) < 1)then
+    Exit;
+  Result := Animations[0];
+end;
+
+(*
+GetWalkQueueX
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetWalkQueueX: Integer;
+
+Returns the characters's current walking queue X, the X coordinance of the NPC's
+destination tile.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetWalkQueueX: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_WalkQueueX);
+end;
+
+(*
+GetWalkQueueY
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetWalkQueueY: Integer;
+
+Returns the characters's current walking queue Y, the Y coordinance of the NPC's
+destination tile.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetWalkQueueY: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_WalkQueueY);
+end;
+
+(*
+GetSpeed
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetSpeed: Integer;
+
+Returns the characters's current speed.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetSpeed: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_Motion);
+end;
+
+(*
+GetHPRatio
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetHPRatio: Integer;
+
+Returns the characters's current HP ratio.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetHPRatio: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_HPRatio) * 100 div $FF;
+end;
+
+(*
+GetInteracting
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetInteracting: Integer;
+
+Returns a number used to calculate the character that this current one is
+interacting with.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetInteracting: Integer;
+begin
+  Result := SmartGetFieldInt(Obj, hook_character_GetInteracting);
+end;
+
+(*
+GetHeight
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetHeight: Integer;
+
+Returns the pixel height of the character.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetHeight: Integer;
+begin
+  Result := Abs(SmartGetFieldInt(Obj, hook_character_GetHeight));
+end;
+
+(*
+GetOrientation
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetOrientation: Integer;
+
+Returns the orientation (angle they are facing) of the character.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetOrientation: Integer;
+begin
+  Result := Round(FixDeg(180 + (SmartGetFieldInt(Obj, hook_character_Orientation)* 45) div 2048));
+end;
+
+(*
+InCombat
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.InCombat: Boolean;
+
+Returns true if the character is in combat.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.InCombat: Boolean;
+var
+  LoopCycle: Integer;
+begin
+  LoopCycle := SmartGetFieldInt(0, hook_static_LoopCycle);
+  Result := LoopCycle < GetLoopCycleStatus;
+end;
+
+(*
+ScreenPos
+~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.ScreenPos: TPoint;
+
+Returns the screen position of the character.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.ScreenPos: TPoint;
+begin
+  Result := TileToMS(GetPos, GetHeight * 2 div 3);
+end;
+
+(*
+OnScreen
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.OnScreen: Boolean;
+
+Returns true if the character is on the screen.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.OnScreen: Boolean;
+begin
+  Result := MSBox.InBox(ScreenPos);
+end;
+
+(*
+GetInteractingCharacter
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.GetInteractingCharacter: TCharacter;
+
+Returns the character that is interacting with this character. Can be a player
+or NPC. To determine, use the TCharacter.CharType field. You can then cast to
+the class you need.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.GetInteractingCharacter: TCharacter;
+var
+  Interacting, NPC, Player, Index: Integer;
+  NodeCache: TNodeCache;
+  Node: TNode;
+begin
+  Result := nil;
+  Interacting := GetInteracting;
+  if(Interacting = -1)then
+    Exit;
+
+  if(Interacting < 32768)then
+  begin
+    NodeCache := TNodeCache.Create(SmartGetFieldObject(0, hook_static_GetNPCNC));
+    Node := FindNodeByID(NodeCache, Interacting);
+    if not Assigned(Node)then
+    begin
+      if Assigned(NodeCache)then
+        NodeCache.Free;
+      Exit;
+    end;
+
+    NPC := SmartGetFieldObject(Node.Obj, hook_NPCNode_GetNPC);
+    if SmartIsNull(NPC)then
+    begin
+      if Assigned(NodeCache)then
+        NodeCache.Free;
+      if Assigned(Node)then
+        Node.Free;
+      Exit;
+    end;
+
+    Result := TCharacter.Create(NPC, TCharType.NPC);
+    if Assigned(Node)then
+      Node.Free;
+    if Assigned(NodeCache)then
+      NodeCache.Free;
+  end else
+  begin
+    Index := Interacting - 32768;
+    if(Index = SmartGetFieldInt(0, hook_static_GetSelfInteracting))then
+      Index := 2074;
+    Player := SmartGetFieldArrayObject(0, hook_static_GetPlayers, Index);
+    if not SmartIsNull(Player)then
+      Result := TCharacter.Create(Player, TCharType.PLAYER);
+  end;
+end;
+
+(*
+IsInteractingWithMe
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.IsInteractingWithMe: Boolean;
+
+Returns true if this character is currently interacting with you.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.IsInteractingWithMe: Boolean;
+var
+  Character, MyPlayer: TCharacter;
+begin
+  Result := False;
+  Character := GetInteractingCharacter;
+  if not Assigned(Character)then
+    Exit;
+
+  if(Character.CharType = PLAYER)then
+  begin
+    MyPlayer := TCharacter.Create(SmartGetFieldObject(0, hook_static_MyPlayer), PLAYER);
+    if(Character.Equals(MyPlayer))then
+    begin
+      Result := True;
+      MyPlayer.Free;
+      Character.Free;
+      Exit;
+    end;
+  end;
+end;
+
+(*
+Equals
+~~~~~~
+
+.. code-block:: pascal
+
+    function TCharacter.Equals(Character: TCharacter): Boolean;
+
+Compares to TCharacters by comparing the objs in smart. Returns true if they
+are the same.
+
+.. note::
+
+  by Drags111
+
+*)
+function TCharacter.Equals(Character: TCharacter): Boolean;
+begin
+  Result := SmartIsEqual(Self.Obj, Character.Obj);
+end;
 
 end.
