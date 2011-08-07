@@ -1,0 +1,75 @@
+unit kronos.lib.wrappers.Polygon;
+
+interface
+
+  uses
+    Types;
+
+  type
+    TPolygon = record
+      public
+        Points: TPointArray;
+
+        constructor Create(Points: TPointArray);
+        function ContainsPoint(P: TPoint): Boolean;
+    end;
+
+implementation
+
+(*
+Create
+~~~~~~
+
+.. code-block:: pascal
+
+    constructor TPolygon.Create(Points: TPointArray);
+
+Initiates the polygon variable with the points indicated in the parameter.
+
+.. note::
+
+  by Drags111
+
+*)
+constructor TPolygon.Create(Points: TPointArray);
+begin
+  Self.Points := Points;
+end;
+
+(*
+ContainsPoint
+~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function TPolygon.ContainsPoint(P: TPoint): Boolean;
+
+Returns true if the point given in the parameter is within the bounds of the
+polygon.
+
+.. note::
+
+  by Lord Soth (DaniWeb Forums)
+
+*)
+function TPolygon.ContainsPoint(P: TPoint): Boolean;
+var
+  I, H, J: integer;
+begin
+  Result := False;
+  H := High(Points);
+  J := H;
+  if(Length(Points) < 1)then
+    Exit;
+
+  for I := 0 to H do
+  begin
+    if((((Points[I].Y <= P.Y) and (P.Y < Points[J].Y))
+      or((Points[J].Y <= P.Y) and (P.Y < Points[I].Y)))
+      and(P.X < ((Points[J].X - Points[I].X) * (P.Y - Points[I].Y) / (Points[J].Y - Points[I].Y) + Points[I].X))) then
+      Result := not Result;
+    J := I;
+  end;
+end;
+
+end.

@@ -1,0 +1,299 @@
+unit kronos.lib.core.Paint;
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.wrappers.Polygon,
+    VCL_Graphics, Bitmaps, Types;
+
+  procedure ClearSMARTDebug;
+  procedure DrawTPA(Clear: Boolean; TPA: TPointArray; Color: Integer); overload;
+  procedure DrawTPA(TPA: TPointArray); overload;
+  procedure DrawLine(Clear: Boolean; Start, Stop: TPoint; Color: Integer); overload;
+  procedure DrawLine(Start, Stop: TPoint); overload;
+  procedure DrawBox(Clear: Boolean; Box: TBox; Color: Integer); overload;
+  procedure DrawBox(Box: TBox); overload;
+  procedure DrawPolygon(Clear: Boolean; Polygon: TPolygon; Color: Integer); overload;
+  procedure DrawPolygon(Polygon: TPolygon); overload;
+
+implementation
+
+var
+  Canvas: TCanvas;
+
+(*
+SetupDebug
+~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure SetupDebug;
+
+Initiates the SMART debug by creating the Canvas object and setting it to
+SMART's debug DC. Automatically called by the drawing functions, and
+automatically freed by the finalization of the unit.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure SetupDebug;
+begin
+  SmartSetDebug(True);
+  Canvas := TCanvas.Create;
+  Canvas.Handle := SmartGetDebugDC;
+end;
+
+(*
+ClearSMARTDebug
+~~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure ClearSMARTDebug;
+
+Clears the SMART debug to erase away any lines drawn before.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure ClearSMARTDebug;
+var
+  Bmp: TBmp;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  Bmp := TBmp.Create;
+  try
+    Bmp.SetSize(747, 466);
+    Bmp.DrawTo(Canvas, 0, 0);
+  finally
+    Bmp.Free;
+  end;
+end;
+
+(*
+DrawTPA
+~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawTPA(Clear: Boolean; TPA: TPointArray; Color: Integer); overload;
+
+Draws out the points in a TPointArray.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawTPA(Clear: Boolean; TPA: TPointArray; Color: Integer); overload;
+var
+  I: Integer;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+
+  if (Length(TPA) < 1)then
+    Exit;
+  for I := 0 to High(TPA)do
+  begin
+    Canvas.MoveTo(TPA[I].X-1, TPA[I].Y);
+    Canvas.LineTo(TPA[I].X, TPA[I].Y);
+  end;
+end;
+
+(*
+DrawTPA
+~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawTPA(TPA: TPointArray); overload;
+
+Draws out the points in a TPointArray.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawTPA(TPA: TPointArray); overload;
+begin
+  DrawTPA(True, TPA, 1188863);
+end;
+
+(*
+DrawLine
+~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawLine(Clear: Boolean; Start, Stop: TPoint; Color: Integer); overload;
+
+Draws a line from Start to Stop.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawLine(Clear: Boolean; Start, Stop: TPoint; Color: Integer); overload;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+
+  Canvas.MoveTo(Start.X, Start.Y);
+  Canvas.LineTo(Stop.X, Stop.Y);
+end;
+
+(*
+DrawLine
+~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawLine(Start, Stop: TPoint); overload;
+
+Draws a line from Start to Stop.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawLine(Start, Stop: TPoint); overload;
+begin
+  DrawLine(True, Start, Stop, 1188863);
+end;
+
+(*
+DrawBox
+~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawBox(Clear: Boolean; Box: TBox; Color: Integer); overload;
+
+Draws the TBox given in the parameters.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawBox(Clear: Boolean; Box: TBox; Color: Integer); overload;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+
+  Canvas.MoveTo(Box.X1, Box.Y1);
+  Canvas.LineTo(Box.X2, Box.Y1);
+  Canvas.LineTo(Box.X2, Box.Y2);
+  Canvas.LineTo(Box.X1, Box.Y2);
+  Canvas.LineTo(Box.X1, Box.Y1);
+end;
+
+(*
+DrawBox
+~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawBox(Box: TBox); overload;
+
+Draws the TBox given in the parameters.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawBox(Box: TBox); overload;
+begin
+  DrawBox(True, Box, 1188863);
+end;
+
+(*
+DrawPolygon
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawPolygon(Clear: Boolean; Polygon: TPolygon; Color: Integer); overload;
+
+Draws the TPolygon given in the parameters. Must have at least 3 points.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawPolygon(Clear: Boolean; Polygon: TPolygon; Color: Integer); overload;
+var
+  I: Integer;
+  Points: TPointArray;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+  Points := Polygon.Points;
+  if(Length(Points) < 3)then
+    Exit;
+
+  Canvas.MoveTo(Points[0].X, Points[0].Y);
+  for I := 1 to High(Points)do
+    Canvas.LineTo(Points[I].X, Points[I].Y);
+  Canvas.LineTo(Points[0].X, Points[0].Y);
+end;
+
+(*
+DrawPolygon
+~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    procedure DrawPolygon(Polygon: TPolygon); overload;
+
+Draws the TPolygon given in the parameters. Must have at least 3 points.
+
+.. note::
+
+  by Drags111
+
+*)
+procedure DrawPolygon(Polygon: TPolygon); overload;
+begin
+  DrawPolygon(True, Polygon, 1188863);
+end;
+
+finalization
+
+  if Assigned(Canvas)then
+    Canvas.Free;
+
+end.
