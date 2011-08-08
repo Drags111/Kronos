@@ -19,6 +19,9 @@ interface
     kronos.lib.wrappers.NodeCache,
     Types;
 
+  var
+    SIN_TABLE, COS_TABLE: TIntArray;
+
   function GetCollisionMap(out CollisionMap: T2DIntArray): Boolean;
   function DijkstraDist(StartX, StartY, DestX, DestY: Integer; IsObject: Boolean; Blocks: T2DIntArray): Integer;
   function PathLengthBetween(Start, Dest: TTile; IsObject: Boolean; CollisionMap: T2DIntArray): Integer; overload;
@@ -404,5 +407,20 @@ begin
     FreeNodeArray(Cache);
   end;
 end;
+
+var
+  D: Extended = 0.00038349519697141029;
+  I: Integer;
+
+initialization
+
+  SetLength(COS_TABLE, 16384);
+  SetLength(SIN_TABLE, 16384);
+
+  for I := 0 to 16383 do
+  begin
+    SIN_TABLE[I] := Math.Round(32768.0 * Math.Sin(I * D));
+    COS_TABLE[I] := Math.Round(32768.0 * Math.Cos(I * D));
+  end;
 
 end.

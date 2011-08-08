@@ -77,7 +77,8 @@ function SmartGetFieldArrayLongH(const Parent: Integer; const Path: AnsiString; 
 function SmartGetFieldArrayLongL(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
 function SmartGetFieldArrayBoolean(const Parent: Integer; const Path: AnsiString; const Index: Integer): Boolean;
 function SmartGetFieldArrayByte(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
-function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
+function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
 function SmartGetFieldArrayChar(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
 
 function SmartGetFieldArray2DObject(const Parent: Integer; const Path: AnsiString; const x, y: Integer): Integer;
@@ -555,12 +556,33 @@ begin
   Result := SMART_Core.SmartGetFieldArrayByte(Parent, PAnsiChar(Path), Index);
 end;
 
-function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;
+function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer; overload;
 begin
   Result := -2;
   if Parent < 0 then
     Exit;
-  Result := SMART_Core.SmartGetFieldArrayByte(Parent, PAnsiChar(Path), Index);
+  Result := SMART_Core.SmartGetFieldArrayShort(Parent, PAnsiChar(Path), Index);
+end;
+
+function SmartGetFieldArrayShort(const Parent: Integer; const Path: AnsiString): TIntArray; overload;
+var
+  L, I: Integer;
+begin
+  SetLength(Result, 0);
+
+  if Parent < 0 then
+    Exit;
+
+  L := SmartGetFieldArraySize(Parent, Path, 1);
+  if(L < 1)then
+    Exit;
+  SetLength(Result, L);
+
+  if(L <= 0)then
+    Exit;
+
+  for I := 0 to L-1 do
+    Result[I] := SmartGetFieldArrayShort(Parent, Path, I);
 end;
 
 function SmartGetFieldArrayChar(const Parent: Integer; const Path: AnsiString; const Index: Integer): Integer;

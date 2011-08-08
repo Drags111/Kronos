@@ -16,6 +16,8 @@ interface
   procedure DrawBox(Box: TBox); overload;
   procedure DrawPolygon(Clear: Boolean; Polygon: TPolygon; Color: Integer); overload;
   procedure DrawPolygon(Polygon: TPolygon); overload;
+  procedure DrawPolygons(Clear: Boolean; Polygons: array of TPolygon; Color: Integer); overload;
+  procedure DrawPolygons(Polygons: array of TPolygon); overload;
 
 implementation
 
@@ -70,7 +72,7 @@ begin
 
   Bmp := TBmp.Create;
   try
-    Bmp.SetSize(747, 466);
+    Bmp.SetSize(768, 514);
     Bmp.DrawTo(Canvas, 0, 0);
   finally
     Bmp.Free;
@@ -289,6 +291,28 @@ Draws the TPolygon given in the parameters. Must have at least 3 points.
 procedure DrawPolygon(Polygon: TPolygon); overload;
 begin
   DrawPolygon(True, Polygon, 1188863);
+end;
+
+procedure DrawPolygons(Clear: Boolean; Polygons: array of TPolygon; Color: Integer); overload;
+var
+  I: Integer;
+begin
+  if not Assigned(Canvas) then
+    SetupDebug;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+  if(Length(Polygons) < 1)then
+    Exit;
+  for I := 0 to High(Polygons)do
+    DrawPolygon(False, Polygons[I], Color);
+end;
+
+procedure DrawPolygons(Polygons: array of TPolygon); overload;
+begin
+  DrawPolygons(True, Polygons, 1188863);
 end;
 
 finalization

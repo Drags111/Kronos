@@ -82,6 +82,8 @@ interface
       procedure Clear;
     end;
 
+  function GetTileHeight(Tile: TTile): Integer;
+  function World3DToScreen(XX, YY, ZZ: Extended): TPoint;
   function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
   function TileToMS(Tile: TTile; Height: Integer): TPoint; overload;
   function TileOnMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): Boolean; overload;
@@ -215,9 +217,9 @@ GetTileHeight
 
 .. code-block:: pascal
 
-    function GetTileHeight(tile: TTile) : integer;
+    function GetTileHeight(Tile: TTile) : Integer;
 
-Finds the average height of the global tile provided the tile is in the current
+Finds the average height of the local tile provided the tile is in the current
 loading area and on a loaded plane.
 
 .. note::
@@ -229,8 +231,8 @@ function GetTileHeight(Tile: TTile): Integer;
 var
   X, Y, CurPlane, GroundSetting, PlaneInstance: Integer;
 begin
-  X := Tile.X - SmartGetFieldInt(0, hook_static_BaseX);
-  Y := Tile.Y - SmartGetFieldInt(0, hook_static_BaseY);
+  X := Tile.X;
+  Y := Tile.Y;
   if ((X < 0) or (X > 104) or (Y < 0) or (Y > 104)) then
   begin
     Result := 0;
@@ -333,16 +335,17 @@ account.
 function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
 var
   PixelX, PixelY, PixelZ: Extended;
-  B: TBox;
+  X, Y: Integer;
   P: TPoint;
 begin
   PixelX := (Tile.X - SmartGetFieldInt(0, hook_static_BaseX) + OffX) * 512.0;
-  PixelY := GetTileHeight(Tile) - Height;
-  PixelZ := (tile.y - SmartGetFieldInt(0, hook_static_BaseY) + OffY) * 512.0;
+  X := Tile.X - SmartGetFieldInt(0, hook_static_BaseX);
+  Y := Tile.Y - SmartGetFieldInt(0, hook_static_BaseY);
+  PixelY := GetTileHeight(Point(X, Y)) - Height;
+  PixelZ := (Y + OffY) * 512.0;
   Result := World3DToScreen(PixelX, PixelY, PixelZ);
-  B := Box(MSX1, MSY1, MSX2, MSY2);
   P := Result;
-  if not B.InBox(P)then
+  if not MSBox.InBox(P)then
   begin
     Result.X := -1;
     Result.Y := -1;

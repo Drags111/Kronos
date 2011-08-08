@@ -37,6 +37,7 @@ interface
         function GetParentIDs: TIntArray;
         function GetSettingIndex: Integer;
         function GetParent: TNPCDef;
+        function GetModel: Integer;
     end;
 
   type
@@ -359,6 +360,98 @@ begin
 
   Result := Loader.GetNPCDef(ParentIDs[Index1]);
   Loader.Free;
+end;
+
+(*
+GetModel
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TNPCDef.GetModel: Integer;
+
+Returns the model object reference of the NPC.
+
+.. note::
+
+  by Drags111
+
+*)
+function TNPCDef.GetModel: Integer;
+var
+  ParentIDs: TIntArray;
+  Child: TNPCDef;
+  Model, Models, Cache, ID, Index, Toolkit, SoftRef, Soft: Integer;
+  NodeCache: TNodeCache;
+  Loader: TNPCDefLoader;
+  Node: TNode;
+begin
+  Result := -2;
+  ParentIDs := GetParentIDs;
+  if(Length(ParentIDs) > 0)then
+  begin
+    Child := GetParent;
+    if Assigned(Child)then
+    begin
+      Result := Child.GetModel;
+      Child.Free;
+      Exit;
+    end;
+  end;
+
+  Loader := GetLoader;
+  if not Assigned(Loader)then
+    Exit;
+
+  Models := SmartGetFieldObject(Loader.Obj, hook_NPCDefLoader_ModelRef);
+  Loader.Free;
+  Cache := SmartGetfieldObject(Models, hook_MRUNodes_GetNodeCache);
+  SmartFreeObject(Models);
+  if SmartIsNull(Cache)then
+  begin
+    if not SmartIsNull(Models)then
+      SmartFreeObject(Models);
+    if not SmartIsNull(Cache)then
+      SmartFreeObject(Cache);
+    Exit;
+  end;
+
+  NodeCache := TNodeCache.Create(Cache);
+  Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
+  Index := SmartGetFieldInt(Toolkit, hook_GraphicsToolkit_GetIndex);
+  SmartFreeObject(Toolkit);
+
+  ID := GetId or Index shl 16;
+  Node := FindNodeByID(NodeCache, ID);
+
+  if not Assigned(Node)then
+  begin
+    NodeCache.Free;
+    Exit;
+  end;
+
+  Model := SmartGetFieldObject(Node.Obj, hook_HardReference_GetObject);
+  if SmartIsNull(Model)then
+  begin
+    SoftRef := SmartGetFieldObject(Node.Obj, hook_SoftReference_GetReference);
+    Soft := SmartGetFieldObject(SoftRef, 'referent');
+    if not SmartIsNull(SoftRef)then
+      SmartFreeObject(SoftRef);
+
+    if SmartIsNull(Soft)then
+    begin
+      NodeCache.Free;
+      Node.Free;
+      Exit;
+    end;
+
+    Model := Soft;
+  end;
+  Result := Model;
+  if Assigned(Node)then
+    Node.Free;
+  if Assigned(NodeCache)then
+    NodeCache.Free;
 end;
 
 //----------------------------------------------------------------------------//

@@ -15,11 +15,13 @@ interface
     kronos.lib.core.Hooks,
     kronos.lib.wrappers.Character,
     kronos.lib.wrappers.NPCDef,
+    kronos.lib.wrappers.Model,
     Types;
 
   type
     TNPC = class(TCharacter)
       private
+        CachedModel: TModel;
         NPCDef: TNPCDef;
         ID, Level: Integer;
         Name: String;
@@ -32,6 +34,7 @@ interface
         function GetActions: TStrArray;
         function GetNPCDef: TNPCDef;
         function Exists: Boolean;
+        function GetModel: TModel;
     end;
     TNPCArray = array of TNPC;
 
@@ -59,6 +62,8 @@ destructor TNPC.Destroy; override;
 begin
   if(Assigned(NPCDef))then
     NPCDef.Free;
+  if(Assigned(CachedModel))then
+    CachedModel.Free;
 
   inherited;
 end;
@@ -232,6 +237,25 @@ begin
     SmartFreeObject(TempNPC);
     SmartFreeObject(TheNPCNode);
   end;
+end;
+
+function TNPC.GetModel: TModel;
+var
+  Def: TNPCDef;
+  Model: Integer;
+begin
+  Result := nil;
+
+  Def := GetNPCDef;
+  if not Assigned(Def)then
+    Exit;
+
+  Model := Def.GetModel;
+
+  if not Assigned(CachedModel)then
+    CachedModel := TModel.Create(Model, Self);
+
+  Result := CachedModel;
 end;
 
 (*

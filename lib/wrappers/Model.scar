@@ -1,0 +1,262 @@
+unit kronos.lib.wrappers.Model;
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks,
+    kronos.lib.core.Globals,
+    kronos.lib.wrappers.Renderable,
+    kronos.lib.wrappers.Character,
+    kronos.lib.wrappers.Polygon,
+    kronos.lib.methods.Tiles,
+    kronos.lib.methods.Calculations,
+    Types, Math;
+
+  type
+    TModel = class
+      private
+        XPoints, YPoints, ZPoints: TIntArray;
+        Indices1, Indices2, Indices3: TIntArray;
+        NumVertices, NumFaces: Integer;
+      public
+        Renderable: TRenderable;
+        Obj: Integer;
+
+        constructor Create(Obj: Integer; Renderable: TRenderable);
+        destructor Destroy; override;
+
+        function GetXPoints: TIntArray;
+        function GetYPoints: TIntArray;
+        function GetZPoints: TIntArray;
+        function GetIndices1: TIntArray;
+        function GetIndices2: TIntArray;
+        function GetIndices3: TIntArray;
+
+        procedure Update;
+        function ProjectVertices: T2DIntArray;
+        function GetTriangles: array of TPolygon;
+        //function ContainsPoint(P: TPoint): Boolean;
+        //function GetCachedPoints: TPointArray;
+    end;
+
+implementation
+
+constructor TModel.Create(Obj: Integer; Renderable: TRenderable);
+begin
+  inherited Create;
+  UnfreedObjects.Add(Self);
+  Self.Obj := Obj;
+  //Self.Tile := LocTile;
+  Self.Renderable := Renderable;
+end;
+
+destructor TModel.Destroy; override;
+begin
+  if not SmartIsNull(Obj)then
+    SmartFreeObject(Obj);
+  UnfreedObjects.Remove(Self);
+  inherited;
+end;
+
+function TModel.GetXPoints: TIntArray;
+begin
+  Result := SmartGetFieldArrayInt(Obj, hook_SDModel_GetPointsX);
+end;
+
+function TModel.GetYPoints: TIntArray;
+begin
+  Result := SmartGetFieldArrayInt(Obj, hook_SDModel_GetPointsY);
+end;
+
+function TModel.GetZPoints: TIntArray;
+begin
+  Result := SmartGetFieldArrayInt(Obj, hook_SDModel_GetPointsZ);
+end;
+
+function TModel.GetIndices1: array of ShortInt;
+begin
+  Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices1);
+end;
+
+function TModel.GetIndices2: array of ShortInt;
+begin
+  Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices2);
+end;
+
+function TModel.GetIndices3: array of ShortInt;
+begin
+  Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices3);
+end;
+
+procedure TModel.Update;
+var
+  I: Integer;
+  Theta, Sin, Cos, N1, N2: Integer;
+  NXPoints, NZPoints: TIntArray;
+  Neg: Boolean;
+begin
+  XPoints := GetXPoints;
+  YPoints := GetYPoints;
+  ZPoints := GetZPoints;
+  Indices1 := GetIndices1;
+  Indices2 := GetIndices2;
+  Indices3 := GetIndices3;
+  NumVertices := Min(Length(XPoints), Min(Length(YPoints), Length(ZPoints)));
+  NumFaces := Min(Length(Indices1), Min(Length(Indices2), Length(Indices3)));
+
+  if Assigned(Renderable) and (Renderable is TCharacter)then
+  begin
+    SetLength(NXPoints, NumVertices);
+    SetLength(NZPoints, NumVertices);
+
+    Theta := Renderable.GetOrientation and $3FFF;
+    Sin := SIN_TABLE[Theta];
+    Cos := COS_TABLE[Theta];
+
+    for I := 0 to NumVertices - 1 do
+    begin
+      N1 := ((XPoints[I] * Cos) + (ZPoints[I] * Sin));
+      N2 := ((ZPoints[I] * Cos) - (XPoints[I] * Sin));
+
+      Neg := N1 < 0;
+      N1 := Abs(N1) shr 15;
+      if Neg then
+        N1 *= -1;
+
+      Neg := N2 < 0;
+      N2 := Abs(N2) shr 15;
+      if Neg then
+        N2 *= -1;
+
+      NXPoints[I] := N1;
+      NZPoints[I] := N2;
+    end;
+
+    SetLength(XPoints, 0);
+    SetLength(ZPoints, 0);
+    XPoints := NXPoints;
+    ZPoints := NZPoints;
+  end;
+
+  //Println('Number of Vertices: '+ToStr(NumVertices));
+  //Println('Number of Faces: '+ToStr(NumFaces));
+end;
+
+function TModel.ProjectVertices: T2DIntArray;
+var
+  LocX, LocY, TileHeight, I: Integer;
+  VertexX, VertexY, VertexZ: Integer;
+  Z, X, Y: Extended;
+  R: TRender;
+  RD: TRenderData;
+begin
+  SetLength(Result, 0);
+
+  Update;
+
+  LocX := Renderable.GetLocalX;
+  LocY := Renderable.GetLocalY;
+
+  RD := TRenderData.Create;
+  R := TRender.Create;
+  RD.Update;
+  R.Update;
+
+  SetLength(Result, NumVertices);
+  TileHeight := GetTileHeight(Point(LocX shr 9, LocY shr 9));
+  for I := 0 to NumVertices - 1 do
+  begin
+    SetLength(Result[I], 3);
+    VertexX := XPoints[I] + LocX;
+    VertexY := YPoints[I] + TileHeight;
+    VertexZ := ZPoints[I] + LocY;
+
+    Z := RD.ZOff + (RD.ZX * VertexX + RD.ZY * VertexY + RD.ZZ * VertexZ);
+    if(Z >= R.ZMin) and (Z <= R.ZMax)then
+    begin
+      X:= R.XScale * (RD.XOff + (RD.XX * VertexX + RD.XY * VertexY + RD.XZ * VertexZ)) / Z;
+      Y:= R.YScale * (RD.YOff + (RD.YX * VertexX + RD.YY * VertexY + RD.YZ * VertexZ)) / Z;
+      if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
+      begin
+        Result[I][0] := Round((X - R.XMin) + 4);
+        Result[I][1] := Round((Y - R.YMin) + 4);
+        Result[I][2] := 1;
+      end else
+      begin
+        Result[I][0] := -1;
+        Result[I][1] := -1;
+        Result[I][2] := 0;
+      end;
+    end else
+    begin
+      Result[I][0] := -1;
+      Result[I][1] := -1;
+      Result[I][2] := 0;
+    end;
+  end;
+  R.Free;
+  RD.Free;
+end;
+
+function TModel.GetTriangles: array of TPolygon;
+var
+  Points: T2DIntArray;
+  I, C, Index1, Index2, Index3: Integer;
+  Xs, Ys: TIntArray;
+begin
+  SetLength(Result, 0);
+  Points := ProjectVertices;
+  if(Length(Points) < 1)then
+    Exit;
+  SetLength(Result, NumFaces);
+  SetLength(Xs, 3);
+  SetLength(Ys, 3);
+  C := 0;
+  for I := 0 to NumFaces - 1 do
+  begin
+    Index1 := Indices1[I];
+    Index2 := Indices2[I];
+    Index3 := Indices3[I];
+
+    Xs[0] := Points[Index1][0];
+    Ys[0] := Points[Index1][1];
+    Xs[1] := Points[Index2][0];
+    Ys[1] := Points[Index2][1];
+    Xs[2] := Points[Index3][0];
+    Ys[2] := Points[Index3][1];
+
+    if(Points[Index1][2] + Points[Index2][2] + Points[Index3][2] = 3)then
+    begin
+      Result[C++] := TPolygon.Create(Xs, Ys, 3);
+    end;
+  end;
+  //SetLength(Result, C);
+end;
+
+{
+function TModel.ContainsPoint(P: TPoint): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if(Length(Triangles) < 1)then
+    Exit;
+  for I := 0 to High(Triangles)do
+  begin
+    if(Triangles[I].ContainsPoint(P))then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function TModel.GetCachedPoints: TPointArray;
+begin
+  if(Length(Self.ModelPoints) < 1)then
+    Update(0);
+  Result := ModelPoints;
+end;         }
+
+end.

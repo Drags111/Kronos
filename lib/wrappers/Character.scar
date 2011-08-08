@@ -38,7 +38,7 @@ interface
         function GetHPRatio: Integer;
         function GetInteracting: Integer;
         function GetHeight: Integer;
-        function GetOrientation: Integer;
+        function GetOrientation: Integer; override;
         function InCombat: Boolean;
         function ScreenPos: TPoint;
         function OnScreen: Boolean;
@@ -254,9 +254,10 @@ Returns the orientation (angle they are facing) of the character.
   by Drags111
 
 *)
-function TCharacter.GetOrientation: Integer;
+function TCharacter.GetOrientation: Integer; override;
 begin
-  Result := Round(FixDeg(180 + (SmartGetFieldInt(Obj, hook_character_Orientation)* 45) div 2048));
+  //Result := Round(FixDeg(180 + (SmartGetFieldInt(Obj, hook_character_Orientation)* 45) div 2048));
+  Result := SmartGetFieldInt(Obj, hook_character_Orientation);
 end;
 
 (*

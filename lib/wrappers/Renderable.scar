@@ -22,7 +22,7 @@ interface
     kronos.lib.core.Globals;
 
   type
-    TRenderable = class
+    TRenderable = class abstract
       public
         Obj: Integer;
 
@@ -33,6 +33,8 @@ interface
         function GetLocalY: Integer;
         function GetPos: TTile;
         function GetPlane: Integer;
+
+        function GetOrientation: Integer; virtual; abstract;
     end;
 
 implementation

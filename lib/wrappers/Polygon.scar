@@ -10,7 +10,8 @@ interface
       public
         Points: TPointArray;
 
-        constructor Create(Points: TPointArray);
+        constructor Create(Points: TPointArray); overload;
+        constructor Create(XPoints, YPoints: TIntArray; Count: Integer); overload;
         function ContainsPoint(P: TPoint): Boolean;
     end;
 
@@ -31,9 +32,18 @@ Initiates the polygon variable with the points indicated in the parameter.
   by Drags111
 
 *)
-constructor TPolygon.Create(Points: TPointArray);
+constructor TPolygon.Create(Points: TPointArray); overload;
 begin
   Self.Points := Points;
+end;
+
+constructor TPolygon.Create(XPoints, YPoints: TIntArray; Count: Integer); overload;
+var
+  I: Integer;
+begin
+  SetLength(Points, Count);
+  for I := 0 to Count - 1 do
+    Points[I] := Point(XPoints[I], YPoints[I]);
 end;
 
 (*
