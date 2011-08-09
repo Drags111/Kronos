@@ -153,6 +153,5 @@ end;
 finalization
 
   CheckUnfreedObjects;
-  UnfreedObjects.Free;
 
 end.
