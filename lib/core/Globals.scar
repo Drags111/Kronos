@@ -33,7 +33,7 @@ interface
     MSBox: TBox = Box(MSX1, MSY1, MSX2, MSY2);
     MMBox: TBox = Box(MMX1, MMY1, MMX2, MMY2);
     MouseSpeed: Integer = 14;
-    UnfreedObjects: TObjectList;
+    UnfreedObjects: TObjectList = TObjectList.Create;
 
   procedure SetMouseSpeed(const Speed: Integer);
 
@@ -59,12 +59,8 @@ begin
   MouseSpeed := Speed;
 end;
 
-initialization
-
-  UnfreedObjects := TObjectList.Create;
-
 finalization
 
-  UnfreedObjects.Free;
+
 
 end.
