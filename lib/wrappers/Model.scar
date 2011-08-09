@@ -98,6 +98,19 @@ begin
   Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices3);
 end;
 
+function IntArraysEqual(Arr1, Arr2: TIntArray): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if(Length(Arr1) <> Length(Arr2))then
+    Exit;
+  for I := 0 to High(Arr1)do
+    if(Arr1[I] <> Arr2[I])then
+      Exit;
+  Result := True;
+end;
+
 procedure TModel.Update;
 var
   I: Integer;
