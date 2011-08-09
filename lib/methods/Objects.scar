@@ -27,7 +27,7 @@ var
   HOOKNAMES: TStrArray = [
     hook_Ground_WallObject1,
     hook_Ground_WallDecoration1,
-    hook_Ground_FloorDecoration1,
+    hook_Ground_FloorDecoration,
     hook_Ground_WallObject2,
     hook_Ground_WallDecoration2
   ];

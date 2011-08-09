@@ -6,12 +6,13 @@ interface
     kronos.smart.SMART,
     kronos.lib.core.Hooks,
     kronos.lib.core.Globals,
+    kronos.lib.core.Paint,
     kronos.lib.wrappers.Renderable,
     kronos.lib.wrappers.Character,
     kronos.lib.wrappers.Polygon,
     kronos.lib.methods.Tiles,
     kronos.lib.methods.Calculations,
-    Types, Math;
+    Types, Math, VCL_Graphics;
 
   type
     TModel = class
@@ -36,6 +37,8 @@ interface
         procedure Update;
         function ProjectVertices: T2DIntArray;
         function GetTriangles: array of TPolygon;
+        function ContainsPoint(P: TPoint): Boolean;
+        procedure Draw(Clear: Boolean; Color: Integer);
         //function ContainsPoint(P: TPoint): Boolean;
         //function GetCachedPoints: TPointArray;
     end;
@@ -56,6 +59,12 @@ begin
   if not SmartIsNull(Obj)then
     SmartFreeObject(Obj);
   UnfreedObjects.Remove(Self);
+  SetLength(XPoints, 0);
+  SetLength(YPoints, 0);
+  SetLength(ZPoints, 0);
+  SetLength(Indices1, 0);
+  SetLength(Indices2, 0);
+  SetLength(Indices3, 0);
   inherited;
 end;
 
@@ -74,17 +83,17 @@ begin
   Result := SmartGetFieldArrayInt(Obj, hook_SDModel_GetPointsZ);
 end;
 
-function TModel.GetIndices1: array of ShortInt;
+function TModel.GetIndices1: TIntArray;
 begin
   Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices1);
 end;
 
-function TModel.GetIndices2: array of ShortInt;
+function TModel.GetIndices2: TIntArray;
 begin
   Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices2);
 end;
 
-function TModel.GetIndices3: array of ShortInt;
+function TModel.GetIndices3: TIntArray;
 begin
   Result := SmartGetFieldArrayShort(Obj, hook_SDModel_GetIndices3);
 end;
@@ -120,7 +129,7 @@ begin
       N2 := ((ZPoints[I] * Cos) - (XPoints[I] * Sin));
 
       Neg := N1 < 0;
-      N1 := Abs(N1) shr 15;
+      N1 := Abs(N1) shr 15;          //Negative shr is broken right now.
       if Neg then
         N1 *= -1;
 
@@ -145,11 +154,9 @@ end;
 
 function TModel.ProjectVertices: T2DIntArray;
 var
-  LocX, LocY, TileHeight, I: Integer;
+  LocX, LocY, TileHeight, I, X, Y: Integer;
   VertexX, VertexY, VertexZ: Integer;
-  Z, X, Y: Extended;
-  R: TRender;
-  RD: TRenderData;
+  Z: Extended;
 begin
   SetLength(Result, 0);
 
@@ -158,10 +165,7 @@ begin
   LocX := Renderable.GetLocalX;
   LocY := Renderable.GetLocalY;
 
-  RD := TRenderData.Create;
-  R := TRender.Create;
-  RD.Update;
-  R.Update;
+  UpdateRenderInfo;
 
   SetLength(Result, NumVertices);
   TileHeight := GetTileHeight(Point(LocX shr 9, LocY shr 9));
@@ -172,15 +176,17 @@ begin
     VertexY := YPoints[I] + TileHeight;
     VertexZ := ZPoints[I] + LocY;
 
-    Z := RD.ZOff + (RD.ZX * VertexX + RD.ZY * VertexY + RD.ZZ * VertexZ);
-    if(Z >= R.ZMin) and (Z <= R.ZMax)then
+    Z := RenderData.ZOff + Floor(RenderData.ZX * VertexX + RenderData.ZY * VertexY + RenderData.ZZ * VertexZ);
+    if(Z >= Render.ZMin) and (Z <= Render.ZMax)then
     begin
-      X:= R.XScale * (RD.XOff + (RD.XX * VertexX + RD.XY * VertexY + RD.XZ * VertexZ)) / Z;
-      Y:= R.YScale * (RD.YOff + (RD.YX * VertexX + RD.YY * VertexY + RD.YZ * VertexZ)) / Z;
-      if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
+      X := Floor(Render.XScale * (Floor(RenderData.XOff) + Floor(RenderData.XX * VertexX +
+                 RenderData.XY * VertexY + RenderData.XZ * VertexZ)) / Z);
+      Y := Floor(Render.YScale * (Floor(RenderData.YOff) + Floor(RenderData.YX * VertexX +
+                 RenderData.YY * VertexY + RenderData.YZ * VertexZ)) / Z);
+      if ((X >= Render.XMin) and (X <= Render.XMax) and (Y >= Render.YMin) and (Y <= Render.YMax)) then
       begin
-        Result[I][0] := Round((X - R.XMin) + 4);
-        Result[I][1] := Round((Y - R.YMin) + 4);
+        Result[I][0] := Floor(X - Render.XMin) + 4;
+        Result[I][1] := Floor(Y - Render.YMin) + 4;
         Result[I][2] := 1;
       end else
       begin
@@ -195,8 +201,6 @@ begin
       Result[I][2] := 0;
     end;
   end;
-  R.Free;
-  RD.Free;
 end;
 
 function TModel.GetTriangles: array of TPolygon;
@@ -204,12 +208,13 @@ var
   Points: T2DIntArray;
   I, C, Index1, Index2, Index3: Integer;
   Xs, Ys: TIntArray;
+  Triangles: array of TPolygon;
 begin
   SetLength(Result, 0);
   Points := ProjectVertices;
   if(Length(Points) < 1)then
     Exit;
-  SetLength(Result, NumFaces);
+  SetLength(Triangles, NumFaces);
   SetLength(Xs, 3);
   SetLength(Ys, 3);
   C := 0;
@@ -226,20 +231,27 @@ begin
     Xs[2] := Points[Index3][0];
     Ys[2] := Points[Index3][1];
 
-    if(Points[Index1][2] + Points[Index2][2] + Points[Index3][2] = 3)then
-    begin
-      Result[C++] := TPolygon.Create(Xs, Ys, 3);
+    try
+      if(Points[Index1][2] + Points[Index2][2] + Points[Index3][2] = 3)then
+        Triangles[C++] := TPolygon.Create(Xs, Ys, 3);
+    except
+      Println('**C: '+ToStr(C)+'**');
+      Println('**Result Length: '+ToStr(Length(Result))+'**');
     end;
   end;
-  //SetLength(Result, C);
+  SetLength(Result, C);
+  for I := 0 to C-1 do
+    Result[I] := Triangles[I];
 end;
 
-{
+
 function TModel.ContainsPoint(P: TPoint): Boolean;
 var
   I: Integer;
+  Triangles: array of TPolygon;
 begin
   Result := False;
+  Triangles := GetTriangles;
   if(Length(Triangles) < 1)then
     Exit;
   for I := 0 to High(Triangles)do
@@ -252,11 +264,45 @@ begin
   end;
 end;
 
-function TModel.GetCachedPoints: TPointArray;
+procedure TModel.Draw(Clear: Boolean; Color: Integer);
+var
+  I, Index1, Index2, Index3: Integer;
+  X1, Y1, X2, Y2, X3, Y3: Integer;
+  Screen: T2DIntArray;
+  Canvas: TCanvas;
 begin
-  if(Length(Self.ModelPoints) < 1)then
-    Update(0);
-  Result := ModelPoints;
-end;         }
+  Screen := ProjectVertices;
+  if(Length(Screen) < 1)then
+    Exit;
+
+  Canvas := GetSmartCanvas;
+
+  if Clear then
+    ClearSMARTDebug;
+
+  Canvas.Pen.Color := Color;
+
+  for I := 0 to NumFaces - 1 do
+  begin
+    Index1 := Indices1[I];
+    Index2 := Indices2[I];
+    Index3 := Indices2[I];
+
+    X1 := Screen[Index1][0];
+    Y1 := Screen[Index1][1];
+    X2 := Screen[Index2][0];
+    Y2 := Screen[Index2][1];
+    X3 := Screen[Index3][0];
+    Y3 := Screen[Index3][1];
+
+    if(Screen[Index1][2] + Screen[Index2][2] + Screen[Index3][2] = 3)then
+    begin
+      Canvas.MoveTo(X1, Y1);
+      Canvas.LineTo(X2, Y2);
+      Canvas.LineTo(X3, Y3);
+      Canvas.LineTo(X1, Y1);
+    end;
+  end;
+end;
 
 end.

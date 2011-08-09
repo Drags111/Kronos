@@ -347,6 +347,7 @@ interface
     hook_ObjectComposite_GetModelID = 'm'; {I}
     hook_ObjectComposite_GetOrientation = 'N'; {I}
     hook_ObjectComposite_GetModel = 'c'; {Lka;}
+    hook_ObjectComposite_GetType = 'L'; {I}
 
   {Class WallObject2}
     class_WallObject2 = 'mt';

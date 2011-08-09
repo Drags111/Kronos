@@ -58,7 +58,7 @@ function SmartGetFieldString(const Parent: Integer; const Path: AnsiString): Str
 function SmartGetFieldInt(const Parent: Integer; const Path: AnsiString): Integer;
 function SmartGetFieldShort(const Parent: Integer; const Path: AnsiString): Integer;
 function SmartGetFieldByte(const Parent: Integer; const Path: AnsiString): Integer;
-function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Extended;
+function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Double;
 function SmartGetFieldDouble(const Parent: Integer; const Path: AnsiString): Extended;
 function SmartGetFieldBoolean(const Parent: Integer; const Path: AnsiString): Boolean;
 function SmartGetFieldLongH(const Parent: Integer; const Path: AnsiString): Integer;
@@ -375,7 +375,7 @@ begin
   Result := SMART_Core.SmartGetFieldByte(Parent, PAnsiChar(Path));
 end;
 
-function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Extended;
+function SmartGetFieldFloat(const Parent: Integer; const Path: AnsiString): Double;
 begin
   Result := -2;
   if Parent < 0 then

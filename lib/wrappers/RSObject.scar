@@ -24,6 +24,7 @@ interface
     kronos.lib.wrappers.RenderableEntity,
     kronos.lib.wrappers.Node,
     kronos.lib.wrappers.NodeCache,
+    kronos.lib.wrappers.Model,
     kronos.lib.methods.Calculations,
     Types;
 
@@ -33,17 +34,22 @@ interface
                 FLOORDECORATION2);
 
     TRSObject = class(TRenderableEntity)
+      private
+        CachedModel: TModel;
       public
         ObjType: TObjType;
 
         constructor Create(Obj: Integer; ObjType: TObjType);
+        destructor Destroy; override;
 
         function GetID: Integer;
         function GetOrientation: Integer;
         function GetName: String;
         function GetActions: TStrArray;
+        function GetModel: TModel;
         function GetChildrenIDs: TIntArray;
         function GetDef: TRSObjectDef;
+        function GetComposite: Integer;
         function Equals(RSObject: TRSObject): Boolean;
     end;
 
@@ -60,6 +66,7 @@ interface
         function GetName: String;
         function GetActions: TStrArray;
         function GetChildrenIDs: TIntArray;
+        function GetModel: TModel;
     end;
 
     procedure FreeRSObjectArray(Objects: TRSObjectArray);
@@ -70,6 +77,13 @@ constructor TRSObject.Create(Obj: Integer; ObjType: TObjType);
 begin
   inherited Create(Obj);
   Self.ObjType := ObjType;
+end;
+
+destructor TRSObject.Destroy; override;
+begin
+  if Assigned(CachedModel)then
+    CachedModel.Free;
+  inherited;
 end;
 
 (*
@@ -239,6 +253,69 @@ begin
 end;
 
 (*
+GetModel
+~~~~~~~~
+
+.. code-block:: pascal
+
+    function TRSObject.GetModel: TModel;
+
+Returns the TModel of the object, used for clicking and painting.
+
+.. note::
+
+  by Drags111
+
+*)
+function TRSObject.GetModel: TModel;
+var
+  UsesCache: Boolean;
+  Model: Integer;
+  Def: TRSObjectDef;
+begin
+  Result := nil;
+  if Assigned(CachedModel)then
+  begin
+    Result := CachedModel;
+    Exit;
+  end;
+
+  UsesCache := False;
+  Model := 0;
+
+  case ObjType of
+    INTERACTIVE1: Model := SmartGetFieldObject(Obj, hook_InteractiveObject1_GetModel);
+    WALLOBJECT1,
+    WALLOBJECT2: begin
+      Model := SmartGetFieldObject(Obj, hook_WallObject1_GetModel);
+      if SmartIsNull(Model) and (ObjType = WALLOBJECT2)then
+        UsesCache := True;
+    end;
+    WALLDECORATION1: Model := SmartGetFieldObject(Obj, hook_WallDecoration1_GetModel);
+    FLOORDECORATION1: Model := SmartGetFieldObject(Obj, hook_FloorDecoration1_GetModel);
+    INTERACTIVE2,
+    WALLDECORATION2,
+    FLOORDECORATION2: UsesCache := True;
+    else Exit;
+  end;
+
+  if(UsesCache)then
+  begin
+    Def := GetDef;
+    if not Assigned(Def)then
+      Exit;
+    Result := Def.GetModel;
+    Exit;
+  end;
+
+  if SmartIsNull(Model)then
+    Exit;
+
+  CachedModel := TModel.Create(Model, Self);
+  Result := CachedModel;
+end;
+
+(*
 GetChildrenIDs
 ~~~~~~~~~~~~~~
 
@@ -323,6 +400,17 @@ begin
     Exit;
 
   Result := TRSObjectDef.Create(Soft, Self);
+end;
+
+function TRSObject.GetComposite: Integer;
+begin
+  Result := 0;
+  case ObjType of
+    INTERACTIVE2: Result := SmartGetFieldObject(Obj, hook_InteractiveObject2_GetComposite);
+    WALLOBJECT2: Result := SmartGetFieldObject(Obj, hook_WallObject2_GetComposite);
+    WALLDECORATION2: Result := SmartGetFieldObject(Obj, hook_WallDecoration2_GetComposite);
+    FLOORDECORATION2: Result := SmartGetFieldObject(Obj, hook_FloorDecoration2_GetComposite);
+  end;
 end;
 
 (*
@@ -475,6 +563,20 @@ Returns an array of the object's children ID's from the loaded object def.
 function TRSObjectDef.GetChildrenIDs: TIntArray;
 begin
   Result := SmartGetFieldArrayInt(Obj, hook_objectdef_getChildrenIDs);
+end;
+
+function TRSObjectDef.GetModel: TModel;
+var
+  Composite, Model: Integer;
+begin
+  Result := nil;
+  Composite := RSObject.GetComposite;
+  Model := SmartGetFieldObject(Composite, hook_ObjectComposite_GetModel);
+  Println('Hi');
+  if not SmartIsNull(Model)then
+    Result := TModel.Create(Model, RSObject);
+  if not SmartIsNull(Composite)then
+    SmartFreeObject(Composite);
 end;
 
 (*

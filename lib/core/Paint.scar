@@ -7,6 +7,7 @@ interface
     kronos.lib.wrappers.Polygon,
     VCL_Graphics, Bitmaps, Types;
 
+  function GetSmartCanvas: TCanvas;
   procedure ClearSMARTDebug;
   procedure DrawTPA(Clear: Boolean; TPA: TPointArray; Color: Integer); overload;
   procedure DrawTPA(TPA: TPointArray); overload;
@@ -46,6 +47,29 @@ begin
   SmartSetDebug(True);
   Canvas := TCanvas.Create;
   Canvas.Handle := SmartGetDebugDC;
+end;
+
+(*
+GetSmartCanvas
+~~~~~~~~~~~~~~
+
+.. code-block:: pascal
+
+    function GetSmartCanvas: TCanvas;
+
+Returns a TCanvas of SMART's debug canvas. Used for functions outside of this
+unit to access and setup the Canvas (such as Models).
+
+.. note::
+
+  by Drags111
+
+*)
+function GetSmartCanvas: TCanvas;
+begin
+  if not Assigned(Canvas)then
+    SetupDebug;
+  Result := Canvas;
 end;
 
 (*

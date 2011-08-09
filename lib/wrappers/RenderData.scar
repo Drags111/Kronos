@@ -1,0 +1,69 @@
+unit kronos.lib.wrappers.RenderData;
+
+(*
+RenderData
+==========
+
+The RenderData record stores the rotation matrix used by the client to render to
+the main screen, along with offsets.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks;
+
+  type
+    TRenderData = record
+    public
+      XOff,XX,XY,XZ: Double;
+      YOff,YX,YY,YZ: Double;
+      ZOff,ZX,ZY,ZZ: Double;
+
+      constructor Create;
+      procedure Update(Viewport: Integer);
+      procedure Clear;
+    end;
+
+implementation
+
+constructor TRenderData.Create;
+begin
+  Clear;
+end;
+
+procedure TRenderData.Update(Viewport: Integer);
+begin
+  XOff := SmartGetFieldFloat(Viewport, hook_sdviewport_xOff);
+  XX := SmartGetFieldFloat(Viewport, hook_sdviewport_xX);
+  XY := SmartGetFieldFloat(Viewport, hook_sdviewport_xY);
+  XZ := SmartGetFieldFloat(Viewport, hook_sdviewport_xZ);
+  YOff := SmartGetFieldFloat(Viewport, hook_sdviewport_yOff);
+  YX := SmartGetFieldFloat(Viewport, hook_sdviewport_yX);
+  YY := SmartGetFieldFloat(Viewport, hook_sdviewport_yY);
+  YZ := SmartGetFieldFloat(Viewport, hook_sdviewport_yZ);
+  ZOff := SmartGetFieldFloat(Viewport, hook_sdviewport_zoff);
+  ZX := SmartGetFieldFloat(Viewport, hook_sdviewport_zX);
+  ZY := SmartGetFieldFloat(Viewport, hook_sdviewport_zY);
+  ZZ := SmartGetFieldFloat(Viewport, hook_sdviewport_zZ);
+end;
+
+procedure TRenderData.Clear;
+begin
+  XOff := -1.0;
+  XX := -1.0;
+  XY := -1.0;
+  XZ := -1.0;
+  YOff := -1.0;
+  YX := -1.0;
+  YY := -1.0;
+  YZ := -1.0;
+  ZOff := -1.0;
+  ZX := -1.0;
+  ZY := -1.0;
+  ZZ := -1.0;
+end;
+
+end.

@@ -50,38 +50,15 @@ interface
     kronos.lib.core.Globals,
     kronos.lib.methods.Methods,
     kronos.lib.methods.Calculations,
+    kronos.lib.wrappers.RenderData,
+    kronos.lib.wrappers.Render,
     Time, Types, Math;
 
-  type
-    {Stores the rotation matrix used by the client to render to the main
-     screen, along with offsets.}
-    TRenderData = class
-    public
-      XOff,XX,XY,XZ: Extended;
-      YOff,YX,YY,YZ: Extended;
-      ZOff,ZX,ZY,ZZ: Extended;
+  var
+    RenderData: TRenderData = TRenderData.Create;
+    Render: TRender = TRender.Create;
 
-      constructor Create;
-      destructor Destroy; override;
-      procedure Update;
-      procedure Clear;
-    end;
-
-    {Stores information about the rendered world including ranges
-     for acceptable values, and scaling factors.}
-    TRender = class
-    public
-      XScale,YScale: Extended;
-      XMin,XMax: Extended;
-      YMin,Ymax: Extended;
-      ZMax,ZMin: Extended;
-
-      constructor Create;
-      destructor Destroy; override;
-      procedure Update;
-      procedure Clear;
-    end;
-
+  procedure UpdateRenderInfo;
   function GetTileHeight(Tile: TTile): Integer;
   function World3DToScreen(XX, YY, ZZ: Extended): TPoint;
   function TileToMS(Tile: TTile; OffX, OffY: Extended; Height: Integer): TPoint; overload;
@@ -93,123 +70,29 @@ interface
 
 implementation
 
-  constructor TRenderData.Create;
-  begin
-    inherited Create;
-    UnfreedObjects.Add(Self);
-    Clear;
-  end;
+procedure UpdateRenderInfo;
+var
+  Toolkit, Viewport: Integer;
+begin
+  try
+    Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
+    Viewport := SmartGetFieldObject(Toolkit, hook_SDToolkit_Viewport);
 
-  destructor TRenderData.Destroy; override;
-  begin
-    UnfreedObjects.Remove(Self);
-    inherited;
-  end;
+    Render.Clear;
+    RenderData.Clear;
 
-  procedure TRenderData.Update;
-  var
-    Toolkit, Viewport, T: Integer;
-  begin
-    T := SysTime;
-    while((ZX <= 0) and (ZY <= 0) and ((SysTime - T) < 10000))do
-    begin
-      Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
-      Viewport := SmartGetFieldObject(Toolkit, hook_sdtoolkit_Viewport);
+    if SmartIsNull(Toolkit) or SmartIsNull(Viewport)then
+      Exit;
 
-      XOff := SmartGetFieldFloat(Viewport, hook_sdviewport_xOff);
-      XX := SmartGetFieldFloat(Viewport, hook_sdviewport_xX);
-      XY := SmartGetFieldFloat(Viewport, hook_sdviewport_xY);
-      XZ := SmartGetFieldFloat(Viewport, hook_sdviewport_xZ);
-      YOff := SmartGetFieldFloat(Viewport, hook_sdviewport_yOff);
-      YX := SmartGetFieldFloat(Viewport, hook_sdviewport_yX);
-      YY := SmartGetFieldFloat(Viewport, hook_sdviewport_yY);
-      YZ := SmartGetFieldFloat(Viewport, hook_sdviewport_yZ);
-      ZOff := SmartGetFieldFloat(Viewport, hook_sdviewport_zoff);
-      ZX := SmartGetFieldFloat(Viewport, hook_sdviewport_zX);
-      ZY := SmartGetFieldFloat(Viewport, hook_sdviewport_zY);
-      ZZ := SmartGetFieldFloat(Viewport, hook_sdviewport_zZ);
-
-      SmartFreeObject(Viewport);
+    Render.Update(Toolkit);
+    RenderData.Update(Viewport);
+  finally
+    if not SmartIsNull(Toolkit)then
       SmartFreeObject(Toolkit);
-    end;
-  end;
-
-  procedure TRenderData.Clear;
-  begin
-    XOff := -1;
-    XX := -1;
-    XY := -1;
-    XZ := -1;
-    YOff := -1;
-    YX := -1;
-    YY := -1;
-    YZ := -1;
-    ZOff := -1;
-    ZX := -1;
-    ZY := -1;
-    ZZ := -1;
-  end;
-
-  constructor TRender.Create;
-  begin
-    inherited Create;
-    UnfreedObjects.Add(Self);
-    Clear;
-  end;
-
-  destructor TRender.Destroy; override;
-  begin
-    UnfreedObjects.Remove(Self);
-    inherited;
-  end;
-
-  procedure TRender.Update;
-  var
-    Toolkit, Viewport, T: Integer;
-    ZX, ZY: Extended;
-  begin
-    T := SysTime;
-    ZX := -1;
-    ZY := -1;
-    while((ZX <= 0) and (ZY <= 0) and ((SysTime - T) < 10000))do
-    begin
-      Toolkit := SmartGetFieldObject(0, hook_static_Toolkit);
-      Viewport := SmartGetFieldObject(Toolkit, hook_sdtoolkit_Viewport);
-
-      ZX := SmartGetFieldFloat(Viewport, hook_sdviewport_zX);
-      ZY := SmartGetFieldFloat(Viewport, hook_sdviewport_zY);
-
-      if(ZX > 0) or (ZY > 0)then
-        Break;
-
+    if not SmartIsNull(Viewport)then
       SmartFreeObject(Viewport);
-      SmartFreeObject(Toolkit);
-    end;
-
-    XScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xScale);
-    YScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yScale);
-    XMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMin);
-    XMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMax);
-    YMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMin);
-    YMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMax);
-    ZMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMin);
-    ZMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMax);
-
-    SmartFreeObject(Viewport);
-    SmartFreeObject(Toolkit);
   end;
-
-  procedure TRender.Clear;
-  begin
-    XScale := -1;
-    YScale := -1;
-    XMin := -1;
-    XMax := -1;
-    YMin := -1;
-    YMax := -1;
-    ZMin := -1;
-    zMax := -1;
-  end;
+end;
 
 (*
 GetTileHeight
@@ -248,7 +131,7 @@ begin
             SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X, Y + 1) +
             SmartGetFieldArray2DInt(PlaneInstance, hook_sdplane_TileHeights, X + 1, Y + 1)) / 4);
   if(Result = -1)then
-    Print('****************TileHight hooks are incorrect.*****************');
+    Println('****************TileHight hooks are incorrect.*****************');
   SmartFreeObject(PlaneInstance);
 end;
 
@@ -269,48 +152,24 @@ Converts a RS 3D point to a coordinate on the screen.
 *)
 function World3DToScreen(XX, YY, ZZ: Extended): TPoint;
 var
-  RD: TRenderData;
-  R: TRender;
-  X, Y, Z: Extended;
-  Tries: Integer;
-label
-  ProcStart;
+  Z: Extended;
+  X, Y: Integer;
 begin
-  RD := TRenderData.Create;
-  R := TRender.Create;
-  try
-    Tries := 0;
-
-    ProcStart:
-    R.Clear;
-    RD.Clear;
-    X := 0;
-    Y := 0;
-    Z := 0;
-    Inc(Tries);
-    Result := Point(-1,-1);
-    R.Update;
-    RD.Update;
-    Z := RD.ZOff + (RD.ZX * XX + RD.ZY * YY + RD.ZZ * ZZ);
-    if ((Z < R.ZMin) or (Z > R.ZMax)) then
-      Exit;
-    X:= R.XScale * (RD.XOff + (RD.XX * XX + RD.XY * YY + RD.XZ * ZZ)) / Z;
-    Y:= R.YScale * (RD.YOff + (RD.YX * XX + RD.YY * YY + RD.YZ * ZZ)) / Z;
-    if ((X >= R.XMin) and (X <= R.XMax) and (Y >= R.YMin) and (Y <= R.YMax)) then
+  Result := Point(-1,-1);
+  UpdateRenderInfo;
+  Z := RenderData.ZOff + Floor(RenderData.ZX * XX + RenderData.ZY * YY + RenderData.ZZ * ZZ);
+  if ((Z >= Render.ZMin) or (Z <= Render.ZMax)) then
+  begin
+    X := Floor(Render.XScale * (Floor(RenderData.XOff) + Floor(RenderData.XX * XX +
+               RenderData.XY * YY + RenderData.XZ * ZZ)) / Z);
+    Y := Floor(Render.YScale * (Floor(RenderData.YOff) + Floor(RenderData.YX * XX +
+               RenderData.YY * YY + RenderData.YZ * ZZ)) / Z);
+    if ((X >= Render.XMin) and (X <= Render.XMax) and
+        (Y >= Render.YMin) and (Y <= Render.YMax)) then
     begin
-      Result.X:= Round((X - R.XMin) + 4);
-      Result.Y:= Round((Y - R.YMin) + 4);
-    end else
-    begin
-      if (Tries > 30)then
-        Exit;
-      goto ProcStart;
+      Result.X:= Floor(X - Render.XMin) + 4;
+      Result.Y:= Floor(Y - Render.YMin) + 4;
     end;
-  finally
-    if Assigned(R)then
-      R.Free;
-    if Assigned(RD)then
-      RD.Free;
   end;
 end;
 

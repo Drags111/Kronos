@@ -1,0 +1,70 @@
+unit kronos.lib.wrappers.Render;
+
+(*
+RenderData
+==========
+
+The RenderData record stores information about the rendered world including
+ranges for acceptable values, and scaling factors.
+
+*)
+
+interface
+
+  uses
+    kronos.smart.SMART,
+    kronos.lib.core.Hooks;
+
+  type
+    TRender = record
+    public
+      XScale,YScale: Integer;
+      XMin,XMax: Integer;
+      YMin,Ymax: Integer;
+      ZMax,ZMin: Integer;
+
+      constructor Create;
+      procedure Update(Toolkit: Integer);
+      procedure Clear;
+    end;
+
+implementation
+
+constructor TRender.Create;
+begin
+  Clear;
+end;
+
+procedure TRender.Update(Toolkit: Integer);
+begin   {
+  XScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xScale);
+  YScale := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yScale);
+  XMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMin);
+  XMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_xMax);
+  YMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMin);
+  YMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_yMax);
+  ZMin := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMin);
+  ZMax := SmartGetFieldInt(Toolkit, hook_sdtoolkit_zMax); }
+  XScale := 512;
+  YScale := 512;
+  XMin := -256;
+  XMax := 256;
+  YMin := -167;
+  YMax := 167;
+  ZMin := 200;
+  ZMax := 14332;
+end;
+
+procedure TRender.Clear;
+begin
+  XScale := -1;
+  YScale := -1;
+  XMin := -1;
+  XMax := -1;
+  YMin := -1;
+  YMax := -1;
+  ZMin := -1;
+  zMax := -1;
+end;
+
+end.
